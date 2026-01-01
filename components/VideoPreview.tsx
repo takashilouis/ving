@@ -2,20 +2,28 @@
 
 import { motion } from "framer-motion";
 
+interface GeneratedVideo {
+    id: string;
+    url: string;
+    prompt: string;
+    duration: number;
+    timestamp: number;
+}
+
 interface VideoPreviewProps {
-    video: {
-        url: string;
-        prompt: string;
-        duration: number;
-    } | null;
+    video: GeneratedVideo | null;
     isGenerating: boolean;
     progress: string;
+    videoHistory?: GeneratedVideo[];
+    onSelectVideo?: (video: GeneratedVideo) => void;
 }
 
 export default function VideoPreview({
     video,
     isGenerating,
     progress,
+    videoHistory = [],
+    onSelectVideo,
 }: VideoPreviewProps) {
     const downloadVideo = () => {
         if (!video) return;
@@ -32,9 +40,14 @@ export default function VideoPreview({
         }
     };
 
+    const formatTime = (timestamp: number) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <div className="flex-1 bg-[#0A0A0A] flex flex-col">
-            {/* Top Bar - Fixed to top right */}
+            {/* Top Bar */}
             <div className="border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
                 <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
                     Motion Video
@@ -62,143 +75,159 @@ export default function VideoPreview({
                 </div>
             </div>
 
-            {/* Video Area - Centered */}
-            <div className="flex-1 flex items-center justify-center p-8">
-                {isGenerating ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center relative"
-                    >
-                        {/* Beautiful particle animation */}
-                        <div className="relative w-32 h-32 mx-auto mb-8">
-                            {/* Outer rotating ring */}
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                                className="absolute inset-0 border-4 border-green-500/20 rounded-full"
-                            />
-
-                            {/* Middle rotating ring */}
-                            <motion.div
-                                animate={{ rotate: -360 }}
-                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                className="absolute inset-2 border-4 border-green-400/30 rounded-full"
-                            />
-
-                            {/* Inner pulsing circle */}
-                            <motion.div
-                                animate={{
-                                    scale: [1, 1.2, 1],
-                                    opacity: [0.5, 1, 0.5]
-                                }}
-                                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                                className="absolute inset-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Video Area */}
+                <div className="flex-1 flex items-center justify-center p-6">
+                    {isGenerating ? (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center relative"
+                        >
+                            {/* Beautiful particle animation */}
+                            <div className="relative w-32 h-32 mx-auto mb-8">
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-0 border-4 border-green-500/20 rounded-full"
+                                />
+                                <motion.div
+                                    animate={{ rotate: -360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-2 border-4 border-green-400/30 rounded-full"
+                                />
+                                <motion.div
+                                    animate={{
+                                        scale: [1, 1.2, 1],
+                                        opacity: [0.5, 1, 0.5]
+                                    }}
+                                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                    className="absolute inset-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
+                                >
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <polygon points="23 7 16 12 23 17 23 7" />
+                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                                    </svg>
+                                </motion.div>
+                                {[0, 120, 240].map((angle, i) => (
+                                    <motion.div
+                                        key={i}
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear", delay: i * 0.3 }}
+                                        className="absolute inset-0"
+                                    >
+                                        <div
+                                            className="absolute w-2 h-2 bg-green-400 rounded-full"
+                                            style={{ top: '50%', left: '100%', transform: 'translate(-50%, -50%)' }}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </div>
+                            <motion.p
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="text-lg font-semibold text-gray-200 mb-2"
                             >
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                {progress}
+                            </motion.p>
+                            <p className="text-sm text-gray-500">
+                                Creating your masterpiece...
+                            </p>
+                        </motion.div>
+                    ) : video ? (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full max-w-4xl"
+                        >
+                            <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl">
+                                <button
+                                    onClick={downloadVideo}
+                                    className="absolute top-4 right-4 z-10 p-3 bg-black/70 hover:bg-black/90 rounded-lg transition-all hover:scale-110"
+                                    title="Download Video"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                </button>
+                                <video
+                                    src={video.url}
+                                    controls
+                                    autoPlay
+                                    muted
+                                    loop
+                                    className="w-full aspect-video"
+                                    playsInline
+                                />
+                            </div>
+                            <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg">
+                                <p className="text-xs text-gray-400 line-clamp-2">
+                                    {video.prompt}
+                                </p>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <div className="text-center max-w-md">
+                            <div className="w-24 h-24 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
                                     <polygon points="23 7 16 12 23 17 23 7" />
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                                 </svg>
-                            </motion.div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-200 mb-2">
+                                No video generated yet
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                Enter a prompt and click Generate to create your video
+                            </p>
+                        </div>
+                    )}
+                </div>
 
-                            {/* Orbiting particles */}
-                            {[0, 120, 240].map((angle, i) => (
-                                <motion.div
-                                    key={i}
-                                    animate={{ rotate: 360 }}
-                                    transition={{
-                                        duration: 4,
-                                        repeat: Infinity,
-                                        ease: "linear",
-                                        delay: i * 0.3
-                                    }}
-                                    className="absolute inset-0"
+                {/* Video History Gallery */}
+                {videoHistory.length > 0 && (
+                    <div className="border-t border-[#1A1A1A] p-4">
+                        <h4 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+                            Recent Videos ({videoHistory.length})
+                        </h4>
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                            {videoHistory.map((historyVideo) => (
+                                <motion.button
+                                    key={historyVideo.id}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => onSelectVideo?.(historyVideo)}
+                                    className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${video?.id === historyVideo.id
+                                            ? "border-green-500"
+                                            : "border-transparent hover:border-gray-600"
+                                        }`}
                                 >
-                                    <div
-                                        className="absolute w-2 h-2 bg-green-400 rounded-full"
-                                        style={{
-                                            top: '50%',
-                                            left: '100%',
-                                            transform: 'translate(-50%, -50%)'
-                                        }}
-                                    />
-                                </motion.div>
+                                    <div className="relative">
+                                        <video
+                                            src={historyVideo.url}
+                                            className="w-full aspect-video object-cover"
+                                            muted
+                                            playsInline
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                            <span className="text-[10px] text-gray-300">
+                                                {historyVideo.duration}s • {formatTime(historyVideo.timestamp)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </motion.button>
                             ))}
                         </div>
-
-                        <motion.p
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="text-lg font-semibold text-gray-200 mb-2"
-                        >
-                            {progress}
-                        </motion.p>
-                        <p className="text-sm text-gray-500">
-                            Creating your masterpiece...
-                        </p>
-                    </motion.div>
-                ) : video ? (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="w-full max-w-5xl"
-                    >
-                        <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl">
-                            {/* Download Button Overlay - Top Right */}
-                            <button
-                                onClick={downloadVideo}
-                                className="absolute top-4 right-4 z-10 p-3 bg-black/70 hover:bg-black/90 rounded-lg transition-all hover:scale-110"
-                                title="Download Video"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                            </button>
-
-                            <video
-                                src={video.url}
-                                controls
-                                autoPlay
-                                muted
-                                loop
-                                className="w-full aspect-video"
-                                playsInline
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-6">
-                                <p className="text-sm text-gray-200 mb-3 line-clamp-2">
-                                    {video.prompt}
-                                </p>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold bg-green-500 text-black px-4 py-1.5 rounded-full">
-                                        {video.duration}s
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <div className="text-center max-w-md">
-                        <div className="w-32 h-32 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
-                                <polygon points="23 7 16 12 23 17 23 7" />
-                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                            </svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-200 mb-2">
-                            No video generated yet
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                            Enter a prompt and click Generate to create your video
-                        </p>
                     </div>
                 )}
             </div>
 
             {/* Bottom Controls */}
             {video && !isGenerating && (
-                <div className="border-t border-[#1A1A1A] px-6 py-4 flex items-center justify-between bg-[#0A0A0A]">
+                <div className="border-t border-[#1A1A1A] px-6 py-3 flex items-center justify-between bg-[#0A0A0A]">
                     <div className="flex items-center gap-4">
                         <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>

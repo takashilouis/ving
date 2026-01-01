@@ -70,14 +70,12 @@ interface LeftSidebarProps {
 export default function LeftSidebar({ onTabChange, activeTab }: LeftSidebarProps) {
     return (
         <div className="w-[60px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col items-center py-4 gap-2">
-            {/* Menu Icon */}
-            <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors mb-4">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-            </button>
+            {/* Vling Logo */}
+            <div className="w-10 h-10 flex items-center justify-center mb-4">
+                <div className="text-2xl font-black bg-gradient-to-br from-green-400 to-emerald-600 bg-clip-text text-transparent">
+                    V
+                </div>
+            </div>
 
             {/* Icon Navigation */}
             {sidebarItems.map((item) => (

@@ -17,10 +17,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate clip duration based on video length
-        // 30s = 5s clips, 40s = 5s clips, 50s = 5s clips, 60s = 6s clips, 90s = 6s clips
+
         let clipDuration: number;
+
         if (videoLength <= 50) {
-            clipDuration = 5;
+            clipDuration = 4;
         } else {
             clipDuration = 6;
         }
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
                                 {
                                     text: `You are a professional video script writer. Generate a detailed ${videoLength}-second video script for the following idea: "${idea}"
 
-Break the script into ${numClips} clips, each exactly ${clipDuration} seconds long.
+Break the script into ${numClips} clips.
 
 For each clip, provide:
 1. A detailed, cinematic prompt suitable for AI video generation
@@ -54,7 +55,6 @@ Format your response as a JSON array with this structure:
 [
   {
     "clipNumber": 1,
-    "duration": ${clipDuration},
     "prompt": "Detailed cinematic prompt for clip 1..."
   },
   ...
@@ -67,7 +67,7 @@ Return ONLY the JSON array, no other text.`,
                     ],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 2048,
+                        maxOutputTokens: 8192,
                     },
                 }),
             }
@@ -92,9 +92,21 @@ Return ONLY the JSON array, no other text.`,
         let clips;
         try {
             // Extract JSON from markdown code blocks if present
-            const jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) ||
-                generatedText.match(/\[[\s\S]*\]/);
-            const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : generatedText;
+            let jsonText = generatedText;
+
+            // Remove markdown code blocks
+            if (jsonText.includes("```json")) {
+                jsonText = jsonText.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+            } else if (jsonText.includes("```")) {
+                jsonText = jsonText.replace(/```\s*/g, "");
+            }
+
+            // Try to find JSON array
+            const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+            if (arrayMatch) {
+                jsonText = arrayMatch[0];
+            }
+
             clips = JSON.parse(jsonText);
 
             // Validate that we got an array

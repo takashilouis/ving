@@ -11,6 +11,11 @@ interface ScriptClip {
 
 interface ScriptGeneratorProps {
     apiKey: string;
+    idea: string;
+    onIdeaChange: (idea: string) => void;
+    clips: ScriptClip[];
+    onClipsChange: (clips: ScriptClip[]) => void;
+    onGenerateClip: (prompt: string, duration: number) => void;
 }
 
 // Format duration properly
@@ -21,12 +26,18 @@ const formatDuration = (seconds: number): string => {
     return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
 };
 
-export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
-    const [idea, setIdea] = useState("");
+export default function ScriptGenerator({
+    apiKey,
+    idea,
+    onIdeaChange,
+    clips,
+    onClipsChange,
+    onGenerateClip
+}: ScriptGeneratorProps) {
     const [videoLength, setVideoLength] = useState(30);
-    const [clips, setClips] = useState<ScriptClip[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [generatingClipId, setGeneratingClipId] = useState<string | null>(null);
 
     const videoLengths = [30, 40, 50, 60, 90];
 
@@ -55,7 +66,7 @@ export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
                 throw new Error(data.error || "Failed to generate script");
             }
 
-            setClips(data.clips);
+            onClipsChange(data.clips);
         } catch (err) {
             const errorMessage =
                 err instanceof Error ? err.message : "An error occurred";
@@ -66,15 +77,36 @@ export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
     };
 
     const removeClip = (id: string) => {
-        setClips(clips.filter((clip) => clip.id !== id));
+        onClipsChange(clips.filter((clip) => clip.id !== id));
     };
 
     const updateClipPrompt = (id: string, newPrompt: string) => {
-        setClips(
+        onClipsChange(
             clips.map((clip) =>
                 clip.id === id ? { ...clip, prompt: newPrompt } : clip
             )
         );
+    };
+
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (err) {
+            console.error("Failed to copy:", err);
+        }
+    };
+
+    const handleGenerateClip = (clip: ScriptClip) => {
+        setGeneratingClipId(clip.id);
+        onGenerateClip(clip.prompt, clip.duration);
+        // Reset after a delay (video generation will handle actual state)
+        setTimeout(() => setGeneratingClipId(null), 2000);
+    };
+
+    const handleGenerateAll = () => {
+        if (clips.length > 0) {
+            handleGenerateClip(clips[0]);
+        }
     };
 
     return (
@@ -85,7 +117,7 @@ export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
                 </label>
                 <textarea
                     value={idea}
-                    onChange={(e) => setIdea(e.target.value)}
+                    onChange={(e) => onIdeaChange(e.target.value)}
                     placeholder="Describe your video idea... e.g., 'A day in the life of a coffee shop owner'"
                     className="dark-input w-full px-3 py-2 text-xs min-h-[80px] resize-none"
                     disabled={isGenerating}
@@ -157,24 +189,27 @@ export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
                                     <span className="text-[10px] font-bold text-green-400">
                                         Clip {index + 1}
                                     </span>
-                                    <button
-                                        onClick={() => removeClip(clip.id)}
-                                        className="text-gray-500 hover:text-red-400 transition-colors"
-                                    >
-                                        <svg
-                                            width="12"
-                                            height="12"
-                                            viewBox="0 0 12 12"
-                                            fill="none"
-                                            stroke="currentColor"
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => copyToClipboard(clip.prompt)}
+                                            className="p-1 text-gray-500 hover:text-green-400 transition-colors"
+                                            title="Copy to clipboard"
                                         >
-                                            <path
-                                                d="M2 2l8 8M10 2L2 10"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                            />
-                                        </svg>
-                                    </button>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => removeClip(clip.id)}
+                                            className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                                            title="Remove clip"
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M2 2l8 8M10 2L2 10" strokeLinecap="round" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <textarea
                                     value={clip.prompt}
@@ -185,23 +220,33 @@ export default function ScriptGenerator({ apiKey }: ScriptGeneratorProps) {
                                     <span className="text-[10px] text-gray-500">
                                         {formatDuration(clip.duration)}
                                     </span>
-                                    <button className="text-[10px] font-medium text-green-400 hover:text-green-300">
-                                        Generate →
+                                    <button
+                                        onClick={() => handleGenerateClip(clip)}
+                                        disabled={generatingClipId === clip.id}
+                                        className={`text-[10px] font-bold px-3 py-1 rounded transition-all ${generatingClipId === clip.id
+                                                ? "bg-green-500/50 text-black/50"
+                                                : "bg-green-500 text-black hover:bg-green-400"
+                                            }`}
+                                    >
+                                        {generatingClipId === clip.id ? "Generating..." : "Generate →"}
                                     </button>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
 
-                    <button className="btn-primary w-full py-2 text-xs font-bold">
-                        🎬 Generate All Clips
+                    <button
+                        onClick={handleGenerateAll}
+                        className="btn-primary w-full py-2 text-xs font-bold"
+                    >
+                        🎬 Generate First Clip
                     </button>
                 </div>
             )}
 
             {!apiKey && (
                 <p className="text-[10px] text-red-400 mt-2">
-                    ⚠️ Please enter your API key to use the script generator
+                    ⚠️ Please enter your API key in Settings
                 </p>
             )}
         </div>
