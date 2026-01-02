@@ -24,6 +24,8 @@ interface ScriptClip {
 export default function Home() {
   const [sidebarTab, setSidebarTab] = useState("video");
   const [apiKey, setApiKey] = useState("");
+  const [klingAccessKey, setKlingAccessKey] = useState("");
+  const [klingSecretKey, setKlingSecretKey] = useState("");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<GeneratedVideo | null>(null);
@@ -31,19 +33,20 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<"veo" | "kling">("veo");
-  const [scriptClips, setScriptClips] = useState<ScriptClip[]>([]); // Persist scripts across tabs
-  const [scriptIdea, setScriptIdea] = useState(""); // Persist idea across tabs
+  const [scriptClips, setScriptClips] = useState<ScriptClip[]>([]);
+  const [scriptIdea, setScriptIdea] = useState("");
 
-  // Load API key from localStorage on mount
+  // Load API keys from localStorage on mount
   useEffect(() => {
-    const savedKey = localStorage.getItem("gemini-api-key");
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-    // Note: Video history is NOT persisted because video blobs are too large for localStorage
-  }, []);
+    const savedGeminiKey = localStorage.getItem("gemini-api-key");
+    if (savedGeminiKey) setApiKey(savedGeminiKey);
 
-  // Don't persist video history to localStorage - videos are blob URLs that can't be saved
+    const savedKlingAK = localStorage.getItem("kling-access-key");
+    if (savedKlingAK) setKlingAccessKey(savedKlingAK);
+
+    const savedKlingSK = localStorage.getItem("kling-secret-key");
+    if (savedKlingSK) setKlingSecretKey(savedKlingSK);
+  }, []);
 
   const handlePresetSelect = (preset: Preset) => {
     setPrompt(preset.prompt);
@@ -60,9 +63,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiKey,
           prompt: prompt.trim(),
@@ -72,7 +73,6 @@ export default function Home() {
       });
 
       setProgress("Processing with Veo 3.1...");
-
       const data = await response.json();
 
       if (!response.ok) {
@@ -91,16 +91,13 @@ export default function Home() {
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
       setProgress("");
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : "An error occurred");
       setProgress("");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Handle generating a clip from Script Generator
   const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string) => {
     if (!apiKey || !clipPrompt.trim()) return;
 
@@ -111,19 +108,16 @@ export default function Home() {
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiKey,
           prompt: clipPrompt.trim(),
-          duration: Math.min(Math.max(clipDuration, 4), 8), // Clamp to 4-8 seconds
+          duration: Math.min(Math.max(clipDuration, 4), 8),
           aspectRatio,
         }),
       });
 
       setProgress("Processing with Veo 3.1...");
-
       const data = await response.json();
 
       if (!response.ok) {
@@ -142,13 +136,23 @@ export default function Home() {
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
       setProgress("");
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : "An error occurred");
       setProgress("");
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleMotionVideoGenerated = (videoUrl: string, motionPrompt: string) => {
+    const newVideo: GeneratedVideo = {
+      id: `video-${Date.now()}`,
+      url: videoUrl,
+      prompt: motionPrompt,
+      duration: 5,
+      timestamp: Date.now(),
+    };
+    setCurrentVideo(newVideo);
+    setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
   };
 
   const handleSelectHistoryVideo = (video: GeneratedVideo) => {
@@ -157,21 +161,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex bg-[#0A0A0A]">
-      {/* Left Sidebar - 60px */}
       <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
 
-      {/* Middle Panel - 370px */}
       {sidebarTab === "settings" ? (
         <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
-          <ApiKeySettings apiKey={apiKey} onApiKeyChange={setApiKey} />
+          <ApiKeySettings
+            apiKey={apiKey}
+            onApiKeyChange={setApiKey}
+            klingAccessKey={klingAccessKey}
+            klingSecretKey={klingSecretKey}
+            onKlingAccessKeyChange={setKlingAccessKey}
+            onKlingSecretKeyChange={setKlingSecretKey}
+          />
         </div>
       ) : (
         <MiddlePanel
           apiKey={apiKey}
+          klingAccessKey={klingAccessKey}
+          klingSecretKey={klingSecretKey}
           onPresetSelect={handlePresetSelect}
           onPromptChange={setPrompt}
           onGenerate={handleGenerate}
           onGenerateClip={handleGenerateClip}
+          onMotionVideoGenerated={handleMotionVideoGenerated}
           prompt={prompt}
           isGenerating={isGenerating}
           selectedModel={selectedModel}
@@ -183,7 +195,6 @@ export default function Home() {
         />
       )}
 
-      {/* Right Panel - Video Preview */}
       <VideoPreview
         video={currentVideo}
         isGenerating={isGenerating}

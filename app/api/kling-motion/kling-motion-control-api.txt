@@ -1,0 +1,192 @@
+Motion Control API
+Create Task
+Protocol	Request URL	Request Method	Request Format	Response Format
+https	/v1/videos/motion-control	POST	application/json	application/json
+Request Header
+Field	Value	Description
+Content-Type	application/json	Data Exchange Format
+Authorization	Authentication information, refer to API authentication	Authentication information, refer to API authentication
+Request Body
+Field	Field	Field	Field	Field
+prompt	string	Optional	None	
+Text prompt words, which can include positive and negative descriptions
+
+You can add elements to the screen and achieve motion effects through prompt words. Please refer to the “Motion Control” user guide for details.
+Cannot exceed 2500 characters.
+image_url	string	Required	Null	
+Reference Image. The characters, backgrounds, and other elements in the generated video are based on the reference image
+
+The video content must meet the following requirements:
+Keep the character’s proportions consistent between the image and the reference video. Avoid using a full-body reference video with a half-body image.
+Ensure the character’s entire body and head are clearly visible and not obstructed.
+Character Selection is supported for up to 1 character. For best results, choose characters with larger proportions in the frame.
+Supports uploading images of realistic/stylised characters (including humans, humanoid animals, certain pure animals, and characters with partial humanoid body proportions).
+Supports inputting image Base64 encoding or image URL (ensure accessibility).
+Please note, if you use the Base64 method, make sure all image data parameters you pass are in Base64 encoding format. When submitting data, do not add any prefixes to the Base64-encoded string, such as data:image/png;base64. The correct parameter format should be the Base64-encoded string itself.
+Example: Correct Base64 encoded parameter:
+1
+iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==
+Incorrect Base64 encoded parameter (includes the data: prefix):
+1
+data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==
+Please provide only the Base64-encoded string portion so that the system can correctly process and parse your data.
+Supported image formats include.jpg / .jpeg / .png.
+The image file size cannot exceed 10MB, and the width and height dimensions of the image range from 300px to 65536px, and the aspect ratio of the image should be between 1:2.5 ~ 2.5:1.
+video_url	string	Required	Null	
+The URL of the reference video. The character actions in the generated video are consistent with the reference video
+
+The video content must meet the following requirements:
+Ensure the character’s entire body and head are clearly visible and not obstructed.
+Upload a single character motion reference. For motion reference with two or more characters, the motion of the character occupying the largest portion of the frame will be used for generation.
+Real human actions are recommended, while certain stylised humanoid or humanoid body proportions can be recognized.
+Avoid cuts and camera movements in the motion reference.
+Avoid overly fast motions; steady, moderate movements yield the best results.
+The video file supports. mp4/. mov, with a file size not exceeding 100MB, and only supports side lengths between 340px and 3850px. If the above verification fails, an error code and other information will be returned.
+The lower limit of video duration should not be less than 3 seconds, and the upper limit of duration is related to the character orientation reference (character_orientation):
+When the orientation of the character matches that of the character in the video, the video can last up to 30 seconds;
+When the orientation of the character is consistent with the character in the picture, the video duration can reach up to 10 seconds;
+The duration range of the uploaded motion reference is from 3 to 30 seconds, in which the generated video length will align with the duration of the uploaded video. If motions are complex or fast-paced, there is a chance that the output may be shorter than the uploaded video duration, as the model can only extract the valid action duration for generation. The minimum extractable continuous action duration is 3 seconds. Please note that in such cases, the consumed credits cannot be refunded. It is recommended to adjust the complexity and speed of the actions accordingly.
+The system will verify the video content and return error codes and other information if there are any issues
+keep_original_sound	string	Optional	yes	
+Weather to keep the original sound of the video
+
+Enumeration values: yes, no
+Among them, yes: Keep the original sound of the video.
+Among them, no: do not retain the original video sound.
+character_orientation	string	Required	Null	
+Generate the orientation of the characters in the video, which can be selected to match the image or the video
+
+List values: image, video, where:
+Among them, image: has the same orientation as the person in the picture; At this time, the reference video duration should not exceed 10 seconds;
+Among them, video: consistent with the orientation of the characters in the video; At this time, the reference video duration should not exceed 30 seconds;
+mode	string	Required	Null	
+Video generation mode
+
+Enum values: std, pro
+std: Standard Mode, which is cost-effective
+pro: Professional Mode, generates videos use longer duration but higher quality video output
+The support range for different model versions and video modes varies. For more details, please refer to the current document's "3-0 Capability Map"
+callback_url	string	Optional	None	
+The callback notification address for the result of this task. If configured, the server will actively notify when the task status changes
+
+The specific message schema of the notification can be found in “Callback Protocol”
+external_task_id	string	Optional	None	
+Customized Task ID
+
+Users can provide a customized task ID, which will not overwrite the system-generated task ID but can be used for task queries.
+Please note that the customized task ID must be unique within a single user account.
+Response Body
+JSON
+Copy
+Collapse
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+{
+  "code": 0, //Error codes；Specific definitions can be found in "Error Code"
+  "message": "string", //Error information
+  "request_id": "string", //Request ID, generated by the system
+  "data":{
+  	"task_id": "string", //Task ID, generated by the system
+    "task_status": "string", //Task status, Enum values：submitted、processing、succeed、failed
+    "task_info":{ //Task creation parameters
+    	"external_task_id": "string" //Customer-defined task ID
+    },
+    "created_at": 1722769557708, //Task creation time, Unix timestamp, unit ms
+    "updated_at": 1722769557708 //Task update time, Unix timestamp, unit ms
+  }
+}
+Query Task (Single)
+Protocol	Request URL	Request Method	Request Format	Response Format
+https	/v1/videos/motion-control/{id}	GET	application/json	application/json
+Request Header
+Field	Value	Description
+Content-Type	application/json	Data Exchange Format
+Authorization	Authentication information, refer to API authentication	Authentication information, refer to API authentication
+Request Path Parameters
+Field	Type	Required Field	Default	Description
+task_id	string	Required	None	
+Task ID for motion control
+
+Request Path Parameters，directly fill the Value in the request path
+Request Body
+None
+
+Response Body
+JSON
+Copy
+Collapse
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+{
+  "code": 0, //Error codes；Specific definitions can be found in "Error Code"
+  "message": "string", //Error information
+  "request_id": "string", //Request ID, generated by thTask ID, generated by the system is used to track requests and troubleshoot problems
+  "data":{
+  	"task_id": "string", //Task ID, generated by the system
+    "task_status": "string", //Task status, Enum values：submitted、processing、succeed、failed
+    "task_status_msg": "string", //Task status information, displaying the failure reason when the task fails (such as triggering the content risk control of the platform, etc.)
+    "task_info":{ //Task creation parameters
+    	"external_task_id": "string" //Customer-defined task ID
+    },
+    "created_at": 1722769557708, //Task creation time, Unix timestamp, unit: ms
+    "updated_at": 1722769557708, //Task update time, Unix timestamp, unit: ms
+    "task_result":{
+      "videos":[
+        {
+        	"id": "string", //Generated video ID; globally unique
+      		"url": "string", //URL for generating videos，such as https://p1.a.kwimgs.com/bs2/upload-ylab-stunt/special-effect/output/HB1_PROD_ai_web_46554461/-2878350957757294165/output.mp4(To ensure information security, generated images/videos will be cleared after 30 days. Please make sure to save them promptly.)
+      		"duration": "string" //Total video duration, unit: s (seconds)
+        }
+      ]
+    }
+  }
+}
+Query Task (List)
+Protocol	Request URL	Request Method	Request Format	Response Format
+https	/v1/videos/motion-control	GET	application/json	application/json
+Request Header
+Field	Value	Description
+Content-Type	application/json	Data Exchange Format
+Authorization	Authentication information, refer to API authentication	Authentication information, refer to API authentication
+Query Parameters
+/v1/videos/motion-control?pageNum=1&pageSize=30
+
+Field	Type	Required Field	Default	Description
+pageNum	int	Optional	1	Page number
+Value range：[1,1000]
+pageSize	int	Optional	30	Data volume per page
+Value range：[1,500]

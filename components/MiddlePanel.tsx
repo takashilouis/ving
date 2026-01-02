@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { categoryPresets } from "@/lib/categoryPresets";
 import { Preset } from "@/lib/presets";
 import ScriptGenerator from "./ScriptGenerator";
+import MotionControlTab from "./MotionControlTab";
 
 type SubTab = "text-to-video" | "image-to-video" | "motion-control" | "script";
 
@@ -16,10 +17,13 @@ interface ScriptClip {
 
 interface MiddlePanelProps {
     apiKey: string;
+    klingAccessKey?: string;
+    klingSecretKey?: string;
     onPresetSelect: (preset: Preset) => void;
     onPromptChange: (prompt: string) => void;
     onGenerate: (aspectRatio: string, duration: number) => void;
     onGenerateClip: (prompt: string, duration: number, aspectRatio: string) => void;
+    onMotionVideoGenerated: (videoUrl: string, prompt: string) => void;
     prompt: string;
     isGenerating: boolean;
     selectedModel: "veo" | "kling";
@@ -32,10 +36,13 @@ interface MiddlePanelProps {
 
 export default function MiddlePanel({
     apiKey,
+    klingAccessKey = "",
+    klingSecretKey = "",
     onPresetSelect,
     onPromptChange,
     onGenerate,
     onGenerateClip,
+    onMotionVideoGenerated,
     prompt,
     isGenerating,
     selectedModel,
@@ -68,10 +75,12 @@ export default function MiddlePanel({
             <div className="p-4 border-b border-[#1A1A1A]">
                 <div className="flex items-center gap-2">
                     <h1 className="text-sm font-bold text-white">AI Video Generator</h1>
-                    <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-medium">
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${selectedModel === "veo"
+                            ? "bg-purple-500/20 text-purple-400"
+                            : "bg-blue-500/20 text-blue-400"
+                        }`}>
                         {selectedModel === "veo" ? "VEO 3.1" : "KLING 2.6"}
                     </span>
-                    {/* Model Selector Dropdown */}
                     <select
                         value={selectedModel}
                         onChange={(e) => onModelChange(e.target.value as "veo" | "kling")}
@@ -89,7 +98,7 @@ export default function MiddlePanel({
                     {[
                         { id: "text-to-video", label: "Text to Video" },
                         { id: "image-to-video", label: "Image to Video" },
-                        { id: "motion-control", label: "Motion Control" },
+                        { id: "motion-control", label: "Motion" },
                         { id: "script", label: "Script" },
                     ].map((tab) => (
                         <button
@@ -118,30 +127,24 @@ export default function MiddlePanel({
                             exit={{ opacity: 0 }}
                             className="p-4 space-y-4"
                         >
-                            {/* Prompt Input */}
                             <div>
                                 <textarea
                                     value={prompt}
                                     onChange={(e) => onPromptChange(e.target.value)}
-                                    placeholder="Use quotation marks for speaking/singing content. For example, the character sings 'look at the stars' (best with English or Chinese Mandarin)."
+                                    placeholder="Describe your video..."
                                     className="dark-input w-full px-3 py-3 text-xs min-h-[100px] resize-none"
                                     disabled={isGenerating}
                                 />
                             </div>
 
-                            {/* Preset Categories */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-semibold text-gray-400 uppercase">Presets</span>
-                                    <button
-                                        onClick={() => setShowPresets(!showPresets)}
-                                        className="text-[10px] text-green-400 hover:text-green-300"
-                                    >
+                                    <button onClick={() => setShowPresets(!showPresets)} className="text-[10px] text-green-400 hover:text-green-300">
                                         {showPresets ? "Hide" : "Show All"}
                                     </button>
                                 </div>
 
-                                {/* Category Pills */}
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                     {categoryPresets.map((cat) => (
                                         <button
@@ -157,7 +160,6 @@ export default function MiddlePanel({
                                     ))}
                                 </div>
 
-                                {/* Preset Grid */}
                                 <div className={`grid grid-cols-2 gap-1.5 ${showPresets ? "" : "max-h-[120px] overflow-hidden"}`}>
                                     {currentPresets.map((preset) => (
                                         <button
@@ -165,9 +167,7 @@ export default function MiddlePanel({
                                             onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
-                                            <span className="text-[10px] font-medium text-white block truncate">
-                                                {preset.title}
-                                            </span>
+                                            <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -177,13 +177,7 @@ export default function MiddlePanel({
 
                     {/* Image to Video Tab */}
                     {activeTab === "image-to-video" && (
-                        <motion.div
-                            key="image-to-video"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="p-4 flex items-center justify-center h-full"
-                        >
+                        <motion.div key="image-to-video" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 flex items-center justify-center h-full">
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-3">
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-500">
@@ -192,50 +186,30 @@ export default function MiddlePanel({
                                         <polyline points="21 15 16 10 5 21" />
                                     </svg>
                                 </div>
-                                <p className="text-xs text-gray-500">Upload an image to animate</p>
+                                <p className="text-xs text-gray-500">Coming soon</p>
                             </div>
                         </motion.div>
                     )}
 
                     {/* Motion Control Tab */}
                     {activeTab === "motion-control" && (
-                        <motion.div
-                            key="motion-control"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="p-4 flex items-center justify-center h-full"
-                        >
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-500">
-                                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                                        <path d="M2 17l10 5 10-5" />
-                                        <path d="M2 12l10 5 10-5" />
-                                    </svg>
-                                </div>
-                                <p className="text-xs text-gray-500">Motion control coming soon</p>
-                                <p className="text-[10px] text-gray-600 mt-1">Powered by Kling AI</p>
-                            </div>
+                        <motion.div key="motion-control" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <MotionControlTab
+                                klingAccessKey={klingAccessKey}
+                                klingSecretKey={klingSecretKey}
+                                onVideoGenerated={onMotionVideoGenerated}
+                            />
                         </motion.div>
                     )}
 
                     {/* Script Tab */}
                     {activeTab === "script" && (
-                        <motion.div
-                            key="script"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="p-4 space-y-4"
-                        >
-                            {/* Preset Categories - Same as Text to Video */}
+                        <motion.div key="script" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 space-y-4">
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-semibold text-gray-400 uppercase">Presets</span>
                                 </div>
 
-                                {/* Category Pills */}
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                     {categoryPresets.map((cat) => (
                                         <button
@@ -251,7 +225,6 @@ export default function MiddlePanel({
                                     ))}
                                 </div>
 
-                                {/* Preset Grid */}
                                 <div className="grid grid-cols-2 gap-1.5 max-h-[100px] overflow-y-auto">
                                     {currentPresets.map((preset) => (
                                         <button
@@ -259,15 +232,12 @@ export default function MiddlePanel({
                                             onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
-                                            <span className="text-[10px] font-medium text-white block truncate">
-                                                {preset.title}
-                                            </span>
+                                            <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Script Generator */}
                             <ScriptGenerator
                                 apiKey={apiKey}
                                 idea={scriptIdea}
@@ -286,7 +256,6 @@ export default function MiddlePanel({
             {/* Bottom Controls - Only show for text-to-video */}
             {activeTab === "text-to-video" && (
                 <div className="p-4 border-t border-[#1A1A1A] space-y-3">
-                    {/* Native Audio Toggle */}
                     <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-400">Native Audio</span>
                         <div className="w-10 h-5 bg-green-500 rounded-full relative cursor-pointer">
@@ -294,26 +263,17 @@ export default function MiddlePanel({
                         </div>
                     </div>
 
-                    {/* Settings Row */}
                     <div className="flex items-center gap-2 text-xs">
                         <select className="flex-1 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
                             <option>Professional</option>
                             <option>Standard</option>
                         </select>
-                        <select
-                            value={duration}
-                            onChange={(e) => setDuration(Number(e.target.value))}
-                            className="w-16 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none"
-                        >
+                        <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-16 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
                             <option value={4}>4s</option>
                             <option value={6}>6s</option>
                             <option value={8}>8s</option>
                         </select>
-                        <select
-                            value={aspectRatio}
-                            onChange={(e) => setAspectRatio(e.target.value)}
-                            className="w-20 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none"
-                        >
+                        <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="w-20 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
                             <option value="16:9">16:9</option>
                             <option value="9:16">9:16</option>
                         </select>
@@ -322,7 +282,6 @@ export default function MiddlePanel({
                         </select>
                     </div>
 
-                    {/* Generate Button */}
                     <button
                         onClick={() => onGenerate(aspectRatio, duration)}
                         disabled={isGenerating || !apiKey || !prompt.trim()}
@@ -337,9 +296,7 @@ export default function MiddlePanel({
                                 Generating...
                             </span>
                         ) : (
-                            <span className="flex items-center justify-center gap-2">
-                                🎬 Generate
-                            </span>
+                            <span className="flex items-center justify-center gap-2">🎬 Generate</span>
                         )}
                     </button>
                 </div>
