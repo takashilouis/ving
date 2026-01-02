@@ -27,16 +27,26 @@ export default function VideoPreview({
 }: VideoPreviewProps) {
     const downloadVideo = () => {
         if (!video) return;
-        try {
-            const a = document.createElement("a");
-            a.href = video.url;
-            a.download = `vling-video-${Date.now()}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error("Download failed:", error);
-            window.open(video.url, "_blank");
+
+        // Check if it's an external URL (Kling, etc.) - open in new tab
+        const isExternalUrl = video.url.startsWith('http') && !video.url.includes(window.location.hostname);
+
+        if (isExternalUrl) {
+            // Open external video URLs in new tab
+            window.open(video.url, "_blank", "noopener,noreferrer");
+        } else {
+            // Download local/blob URLs directly
+            try {
+                const a = document.createElement("a");
+                a.href = video.url;
+                a.download = `vling-video-${Date.now()}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error("Download failed:", error);
+                window.open(video.url, "_blank");
+            }
         }
     };
 
@@ -201,8 +211,8 @@ export default function VideoPreview({
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => onSelectVideo?.(historyVideo)}
                                     className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${video?.id === historyVideo.id
-                                            ? "border-green-500"
-                                            : "border-transparent hover:border-gray-600"
+                                        ? "border-green-500"
+                                        : "border-transparent hover:border-gray-600"
                                         }`}
                                 >
                                     <div className="relative">

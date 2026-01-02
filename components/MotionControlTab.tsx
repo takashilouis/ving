@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { motion } from "framer-motion";
 
 interface MotionControlTabProps {
     klingAccessKey: string;
@@ -102,16 +103,28 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                 reader.readAsDataURL(refImage);
             });
 
-            // For video: if file uploaded, we need to show a message about storage
+            // For video: if file uploaded, we need to upload to cloud storage
             let finalVideoUrl = videoUrl.trim();
 
             if (videoInputMode === "upload" && videoFile) {
-                // TODO: Upload to cloud storage and get URL
-                // For now, show error that video upload requires cloud storage setup
-                setError("Video upload requires cloud storage setup. Please use a video URL instead, or set up Cloudflare R2/Firebase Storage.");
-                stopTimer();
-                setIsGenerating(false);
-                return;
+                setProgress("Uploading video to cloud storage...");
+
+                // Upload to Cloudflare R2
+                const formData = new FormData();
+                formData.append("file", videoFile);
+
+                const uploadResponse = await fetch("/api/upload-video", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadData.error || "Failed to upload video");
+                }
+
+                finalVideoUrl = uploadData.url;
             }
 
             setProgress("Sending to Kling AI...");
@@ -159,7 +172,7 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
             <div className="flex items-center gap-2 mb-2">
                 <span className="text-lg">🎬</span>
                 <h3 className="text-xs font-bold text-white">Motion Control</h3>
-                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Kling 2.6</span>
+                <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Kling 2.6</span>
             </div>
 
             {!hasKlingKeys && (
@@ -182,7 +195,7 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                         </button>
                     </div>
                 ) : (
-                    <div onClick={() => imageInputRef.current?.click()} className="w-full h-28 border-2 border-dashed border-[#2A2A2A] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors">
+                    <div onClick={() => imageInputRef.current?.click()} className="w-full h-28 border-2 border-dashed border-[#2A2A2A] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-green-500/50 transition-colors">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-500 mb-1">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                         </svg>
@@ -199,13 +212,13 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                     <div className="flex bg-[#1E1E1E] rounded p-0.5">
                         <button
                             onClick={() => setVideoInputMode("url")}
-                            className={`px-2 py-0.5 text-[9px] rounded transition-colors ${videoInputMode === "url" ? "bg-blue-500 text-white" : "text-gray-400"}`}
+                            className={`px-2 py-0.5 text-[9px] rounded transition-colors ${videoInputMode === "url" ? "bg-green-500 text-black" : "text-gray-400"}`}
                         >
                             URL
                         </button>
                         <button
                             onClick={() => setVideoInputMode("upload")}
-                            className={`px-2 py-0.5 text-[9px] rounded transition-colors ${videoInputMode === "upload" ? "bg-blue-500 text-white" : "text-gray-400"}`}
+                            className={`px-2 py-0.5 text-[9px] rounded transition-colors ${videoInputMode === "upload" ? "bg-green-500 text-black" : "text-gray-400"}`}
                         >
                             Upload
                         </button>
@@ -236,7 +249,7 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                                 </button>
                             </div>
                         ) : (
-                            <div onClick={() => videoInputRef.current?.click()} className="w-full h-24 border-2 border-dashed border-[#2A2A2A] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors">
+                            <div onClick={() => videoInputRef.current?.click()} className="w-full h-24 border-2 border-dashed border-[#2A2A2A] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-green-500/50 transition-colors">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-500 mb-1">
                                     <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                                 </svg>
@@ -244,7 +257,7 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                             </div>
                         )}
                         <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/mov" onChange={handleVideoUpload} className="hidden" />
-                        <p className="text-[9px] text-yellow-500 mt-1">⚠️ Requires cloud storage setup (Cloudflare R2 recommended)</p>
+                        <p className="text-[9px] text-gray-500 mt-1">Video will be uploaded to cloud storage automatically</p>
                     </div>
                 )}
             </div>
@@ -257,11 +270,11 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                         <button
                             key={opt}
                             onClick={() => setOrientation(opt)}
-                            className={`p-2 rounded-lg border-2 transition-all text-left ${orientation === opt ? "border-blue-500 bg-blue-500/10" : "border-[#2A2A2A] hover:border-gray-600"}`}
+                            className={`p-2 rounded-lg border-2 transition-all text-left ${orientation === opt ? "border-green-500 bg-green-500/10" : "border-[#2A2A2A] hover:border-gray-600"}`}
                         >
                             <div className="flex items-center gap-2">
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${orientation === opt ? "border-blue-500" : "border-gray-500"}`}>
-                                    {orientation === opt && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${orientation === opt ? "border-green-500" : "border-gray-500"}`}>
+                                    {orientation === opt && <div className="w-2 h-2 rounded-full bg-green-500" />}
                                 </div>
                                 <span className="text-[10px] font-medium text-white capitalize">{opt}</span>
                             </div>
@@ -288,17 +301,45 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                 <div className="p-2 bg-red-950/30 border border-red-800/30 rounded text-xs text-red-400">⚠️ {error}</div>
             )}
 
-            {/* Progress with Timer */}
+            {/* Progress with Rotating Spinner */}
             {isGenerating && (
-                <div className="p-3 bg-blue-950/30 border border-blue-800/30 rounded">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-blue-400">⏳ {progress}</span>
-                        <span className="text-xs text-blue-300 font-mono">{formatTime(elapsedTime)}</span>
+                <div className="p-4 bg-green-950/30 border border-green-800/30 rounded">
+                    <div className="flex items-center gap-3 mb-3">
+                        {/* Rotating circles like Text to Video */}
+                        <div className="relative w-10 h-10">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-0 border-2 border-green-500/20 rounded-full"
+                            />
+                            <motion.div
+                                animate={{ rotate: -360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-1 border-2 border-green-400/40 rounded-full"
+                            />
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-2 border-2 border-green-500/60 rounded-full border-t-green-500"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <span className="text-xs text-green-400 font-medium">{progress}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-green-300/70">Elapsed:</span>
+                                <span className="text-xs text-green-300 font-mono">{formatTime(elapsedTime)}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="w-full h-1.5 bg-blue-900/50 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: "100%" }} />
+                    <div className="w-full h-1 bg-green-900/50 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full"
+                            animate={{ x: ["-100%", "100%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            style={{ width: "50%" }}
+                        />
                     </div>
-                    <p className="text-[9px] text-blue-400/70 mt-2">Estimated: 2-5 minutes depending on video length</p>
+                    <p className="text-[9px] text-green-400/60 mt-2">Estimated: 2-5 minutes depending on video length</p>
                 </div>
             )}
 
@@ -306,12 +347,18 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
             <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !hasKlingKeys || !refImage || !hasVideo}
-                className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating || !refImage || !hasVideo ? "bg-blue-500/50 text-white/50" : "bg-blue-500 text-white hover:bg-blue-400"
+                className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating || !refImage || !hasVideo ? "bg-green-500/50 text-black/50" : "bg-green-500 text-black hover:bg-green-400"
                     }`}
             >
                 {isGenerating ? (
                     <span className="flex items-center justify-center gap-2">
-                        <span className="animate-spin">⚙️</span>
+                        <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="inline-block"
+                        >
+                            ⚙️
+                        </motion.span>
                         Generating...
                     </span>
                 ) : (

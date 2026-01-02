@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
             const statusData = await statusResponse.json();
 
             // Debug logging for polling
-            console.log(`=== Kling Poll Attempt ${attempts + 1} ===`);
-            console.log("Task status:", statusData.data?.task_status);
-            console.log("Task status msg:", statusData.data?.task_status_msg);
+            // console.log(`=== Kling Poll Attempt ${attempts + 1} ===`);
+            // console.log("Task status:", statusData.data?.task_status);
+            // console.log("Task status msg:", statusData.data?.task_status_msg);
 
             if (statusData.code !== 0) {
                 console.error("Kling status error:", statusData);
