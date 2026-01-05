@@ -5,7 +5,7 @@ import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
 import ApiKeySettings from "@/components/ApiKeySettings";
-import { Preset } from "@/lib/presets";
+// import { Preset } from "@/lib/presets";
 
 interface GeneratedVideo {
   id: string;
@@ -48,10 +48,10 @@ export default function Home() {
     if (savedKlingSK) setKlingSecretKey(savedKlingSK);
   }, []);
 
-  const handlePresetSelect = (preset: Preset) => {
-    setPrompt(preset.prompt);
-    setError(null);
-  };
+  //const handlePresetSelect = (preset: Preset) => {
+  //  setPrompt(preset.prompt);
+  //  setError(null);
+  //};
 
   const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6) => {
     if (!apiKey || !prompt.trim()) return;
@@ -179,7 +179,7 @@ export default function Home() {
           apiKey={apiKey}
           klingAccessKey={klingAccessKey}
           klingSecretKey={klingSecretKey}
-          onPresetSelect={handlePresetSelect}
+          //onPresetSelect={handlePresetSelect}
           onPromptChange={setPrompt}
           onGenerate={handleGenerate}
           onGenerateClip={handleGenerateClip}

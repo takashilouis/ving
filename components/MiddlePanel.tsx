@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { categoryPresets } from "@/lib/categoryPresets";
-import { Preset } from "@/lib/presets";
+//import { Preset } from "@/lib/presets";
 import ScriptGenerator from "./ScriptGenerator";
 import MotionControlTab from "./MotionControlTab";
 
@@ -19,7 +19,7 @@ interface MiddlePanelProps {
     apiKey: string;
     klingAccessKey?: string;
     klingSecretKey?: string;
-    onPresetSelect: (preset: Preset) => void;
+    //onPresetSelect: (preset: Preset) => void;
     onPromptChange: (prompt: string) => void;
     onGenerate: (aspectRatio: string, duration: number) => void;
     onGenerateClip: (prompt: string, duration: number, aspectRatio: string) => void;
@@ -38,7 +38,7 @@ export default function MiddlePanel({
     apiKey,
     klingAccessKey = "",
     klingSecretKey = "",
-    onPresetSelect,
+    //onPresetSelect,
     onPromptChange,
     onGenerate,
     onGenerateClip,
@@ -60,14 +60,14 @@ export default function MiddlePanel({
 
     const currentPresets = categoryPresets.find(c => c.category === activePresetCategory)?.presets || [];
 
-    const handlePresetClick = (preset: Preset) => {
-        if (activeTab === "text-to-video") {
-            onPromptChange(preset.prompt);
-            setShowPresets(false);
-        } else if (activeTab === "script") {
-            onScriptIdeaChange(preset.prompt);
-        }
-    };
+    //const handlePresetClick = (preset: Preset) => {
+    //    if (activeTab === "text-to-video") {
+    //        onPromptChange(preset.prompt);
+    //        setShowPresets(false);
+    //    } else if (activeTab === "script") {
+    //        onScriptIdeaChange(preset.prompt);
+    //    }
+    //};
 
     return (
         <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col">
@@ -76,8 +76,8 @@ export default function MiddlePanel({
                 <div className="flex items-center gap-2">
                     <h1 className="text-sm font-bold text-white">AI Video Generator</h1>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${selectedModel === "veo"
-                            ? "bg-purple-500/20 text-purple-400"
-                            : "bg-blue-500/20 text-blue-400"
+                        ? "bg-purple-500/20 text-purple-400"
+                        : "bg-blue-500/20 text-blue-400"
                         }`}>
                         {selectedModel === "veo" ? "VEO 3.1" : "KLING 2.6"}
                     </span>
@@ -164,7 +164,7 @@ export default function MiddlePanel({
                                     {currentPresets.map((preset) => (
                                         <button
                                             key={preset.id}
-                                            onClick={() => handlePresetClick(preset)}
+                                            //onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
                                             <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>
@@ -229,7 +229,7 @@ export default function MiddlePanel({
                                     {currentPresets.map((preset) => (
                                         <button
                                             key={preset.id}
-                                            onClick={() => handlePresetClick(preset)}
+                                            //onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
                                             <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>
