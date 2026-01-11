@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as jose from 'jose';
 
-export const maxDuration = 900; // 15 minutes
+export const maxDuration = 300; // 15 minutes
 
 // Generate JWT token for Kling API authentication
 async function generateKlingJWT(accessKey: string, secretKey: string): Promise<string> {
