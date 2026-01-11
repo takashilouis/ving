@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { categoryPresets } from "@/lib/categoryPresets";
-//import { Preset } from "@/lib/presets";
+import { Preset } from "@/lib/types";
 import ScriptGenerator from "./ScriptGenerator";
 import MotionControlTab from "./MotionControlTab";
 
@@ -60,14 +60,14 @@ export default function MiddlePanel({
 
     const currentPresets = categoryPresets.find(c => c.category === activePresetCategory)?.presets || [];
 
-    //const handlePresetClick = (preset: Preset) => {
-    //    if (activeTab === "text-to-video") {
-    //        onPromptChange(preset.prompt);
-    //        setShowPresets(false);
-    //    } else if (activeTab === "script") {
-    //        onScriptIdeaChange(preset.prompt);
-    //    }
-    //};
+    const handlePresetClick = (preset: Preset) => {
+        if (activeTab === "text-to-video") {
+            onPromptChange(preset.prompt);
+            setShowPresets(false);
+        } else if (activeTab === "script") {
+            onScriptIdeaChange(preset.prompt);
+        }
+    };
 
     return (
         <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col">
@@ -164,7 +164,7 @@ export default function MiddlePanel({
                                     {currentPresets.map((preset) => (
                                         <button
                                             key={preset.id}
-                                            //onClick={() => handlePresetClick(preset)}
+                                            onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
                                             <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>
@@ -229,7 +229,7 @@ export default function MiddlePanel({
                                     {currentPresets.map((preset) => (
                                         <button
                                             key={preset.id}
-                                            //onClick={() => handlePresetClick(preset)}
+                                            onClick={() => handlePresetClick(preset)}
                                             className="p-2 bg-[#1E1E1E] rounded text-left hover:bg-[#2A2A2A] transition-colors border border-transparent hover:border-green-500/30"
                                         >
                                             <span className="text-[10px] font-medium text-white block truncate">{preset.title}</span>

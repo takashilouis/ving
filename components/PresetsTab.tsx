@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { categoryPresets } from "@/lib/categoryPresets";
-import { Preset } from "@/lib/presets";
+import { Preset } from "@/lib/types";
 
 interface PresetsTabProps {
     onSelectPreset: (preset: Preset) => void;
@@ -23,8 +23,8 @@ export default function PresetsTab({ onSelectPreset }: PresetsTabProps) {
                         key={cat.category}
                         onClick={() => setActiveCategory(cat.category)}
                         className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeCategory === cat.category
-                                ? "bg-green-500 text-black"
-                                : "bg-[#1E1E1E] text-gray-400 hover:text-white"
+                            ? "bg-green-500 text-black"
+                            : "bg-[#1E1E1E] text-gray-400 hover:text-white"
                             }`}
                     >
                         {cat.category}

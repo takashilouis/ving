@@ -5,7 +5,7 @@ import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
 import ApiKeySettings from "@/components/ApiKeySettings";
-// import { Preset } from "@/lib/presets";
+
 
 interface GeneratedVideo {
   id: string;

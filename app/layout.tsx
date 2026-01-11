@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vling | AI Video Generator",
+  title: "Ving | AI Video Generator",
   description: "Generate stunning AI videos with Google Veo 3.1. Bring Your Own Key - your API key stays in your browser.",
   icons: {
     icon: "/favicon.svg",

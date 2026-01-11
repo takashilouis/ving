@@ -1,4 +1,4 @@
-import { Preset } from "./presets";
+import { Preset } from "./types";
 
 // Advertisement, Photoshoot, Cinematic, Fashion, Movie presets
 export const categoryPresets: { category: string; presets: Preset[] }[] = [

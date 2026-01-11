@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ving | AI Video Generator
+
+**Ving** is a modern, privacy-focused AI video generation platform that lets you create stunning videos using Google's Veo 3.1 and Kling AI models.
+
+Built with a "Bring Your Own Key" (BYOK) architecture, Ving ensures your API keys never leave your browser, giving you full control and security while accessing state-of-the-art video generation capabilities.
+
+<br>
+
+![Ving Interface Preview](/placeholder-image.png)
+
+<br>
+
+## Features
+
+- **Multi-Model Support**: Generate videos using **Google Veo 3.1** or **Kling 2.6**.
+- **BYOK Privacy**: Your API keys are stored locally in your browser. No middleman server.
+- **Cinematic Presets**: One-click professional prompts for advertisements, fashion, movies, and more.
+- **Motion Control**: (Coming Soon) precise control over camera movement and dynamics.
+- **Script to Video**: Turn your ideas into video scripts and generate matching clips.
+- **Modern UI**: Sleek, dark-mode interface designed for creative workflows.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18+ installed.
+- API Keys for [Google Gemini/Veo](https://aistudio.google.com/) or Kling AI.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/takashilouis/ving.git
+   cd ving
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Enter API Key**: Click the settings icon in the sidebar and enter your Google Gemini or Kling API key.
+2. **Choose a Preset**: distinct categories like *Cinematic*, *Advertisement*, or *Fashion* to get started quickly.
+3. **Customize**: Edit the prompt, adjust aspect ratio (16:9, 9:16), and set duration.
+4. **Generate**: Click "Generate" and watch your vision come to life.
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS 4
+- **Animations**: Framer Motion
+- **Language**: TypeScript
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT
