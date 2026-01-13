@@ -335,7 +335,7 @@ export default function MotionControlTab({ onVideoGenerated }: MotionControlTabP
             {/* Generate Button */}
             <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !hasKlingKeys || !refImage || !hasVideo}
+                disabled={isGenerating || !refImage || !hasVideo}
                 className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating || !refImage || !hasVideo ? "bg-green-500/50 text-black/50" : "bg-green-500 text-black hover:bg-green-400"
                     }`}
             >
