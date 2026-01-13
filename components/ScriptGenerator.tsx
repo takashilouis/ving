@@ -10,7 +10,6 @@ interface ScriptClip {
 }
 
 interface ScriptGeneratorProps {
-    apiKey: string;
     idea: string;
     onIdeaChange: (idea: string) => void;
     clips: ScriptClip[];
@@ -27,7 +26,6 @@ const formatDuration = (seconds: number): string => {
 };
 
 export default function ScriptGenerator({
-    apiKey,
     idea,
     onIdeaChange,
     clips,
@@ -42,7 +40,7 @@ export default function ScriptGenerator({
     const videoLengths = [30, 40, 50, 60, 90];
 
     const generateScript = async () => {
-        if (!idea.trim() || !apiKey) return;
+        if (!idea.trim()) return;
 
         setIsGenerating(true);
         setError(null);
@@ -54,7 +52,6 @@ export default function ScriptGenerator({
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    apiKey,
                     idea: idea.trim(),
                     videoLength,
                 }),
@@ -144,7 +141,7 @@ export default function ScriptGenerator({
 
             <button
                 onClick={generateScript}
-                disabled={isGenerating || !idea.trim() || !apiKey}
+                disabled={isGenerating || !idea.trim()}
                 className="btn-primary w-full py-2 text-xs font-bold"
             >
                 {isGenerating ? (
@@ -242,12 +239,6 @@ export default function ScriptGenerator({
                         🎬 Generate First Clip
                     </button>
                 </div>
-            )}
-
-            {!apiKey && (
-                <p className="text-[10px] text-red-400 mt-2">
-                    ⚠️ Please enter your API key in Settings
-                </p>
             )}
         </div>
     );

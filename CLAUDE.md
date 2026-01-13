@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ving** is a privacy-focused AI video generation platform using a "Bring Your Own Key" (BYOK) architecture. Users provide their own API keys (Google Gemini/Veo or Kling AI) which are stored in browser localStorage and sent directly to the AI providers—never to a backend server. Built with Next.js 16 App Router, React 19, TypeScript, and Tailwind CSS 4.
+**Ving** is an AI video generation platform with an admin-managed API key system and credit-based usage model. Built with Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, and Supabase for authentication and data persistence. Users consume credits for video generation, with API keys managed centrally by administrators.
 
 ## Commands
 
@@ -18,13 +18,16 @@ npm run lint         # Run ESLint
 
 ## Architecture Overview
 
-### BYOK Design Philosophy
+### Credit System Design Philosophy
 
-The entire architecture centers on privacy through client-side API key storage:
-- API keys stored in browser `localStorage` only
-- Keys never sent to backend (except directly to AI provider APIs)
-- Video history is ephemeral (component state, not persisted to database)
-- No authentication system—each browser session is independent
+The platform operates on a credit-based consumption model:
+- **Admin-Managed API Keys**: API keys for Gemini/Veo and Kling AI are stored encrypted in the database, accessible only to administrators
+- **User Authentication**: Supabase Auth handles user sign-up/sign-in with email/password and Google OAuth
+- **Credit System**: Users receive credits upon signup (10 free credits) and consume them per video generation:
+  - Veo 3.1 video: 1 credit
+  - Kling Motion Control: 2 credits
+- **Row Level Security (RLS)**: PostgreSQL RLS policies ensure users can only access their own data
+- **No BYOK**: Users don't need their own API keys—the admin provides them centrally
 
 ### Component Hierarchy & Data Flow
 
@@ -43,15 +46,15 @@ app/page.tsx (Main orchestrator)
     └── VideoGallery (Recent 20 videos, horizontally scrollable)
 ```
 
-**State Management**: All state lives in `app/page.tsx` as React hooks. Props are passed down to child components with callback functions for updates. No global state management library is used.
+**State Management**: All state lives in `app/page.tsx` as React hooks. Props are passed down to child components with callback functions for updates. No global state management library is used. Authentication state is managed via Supabase's `AuthContext`.
 
 **Key State Variables**:
-- `apiKey`, `klingAccessKey`, `klingSecretKey` - API credentials from localStorage
 - `currentVideo` - Currently displayed video object
-- `videoHistory` - Array of recent GeneratedVideo objects (max 20)
+- `videoHistory` - Array of recent GeneratedVideo objects (max 20, ephemeral in component state)
 - `isGenerating`, `progress` - Loading state for UI feedback
 - `selectedModel` - "veo" or "kling" model selection
 - `scriptClips` - Array of clips from script generator
+- User authentication state handled by `useAuth()` hook from AuthContext
 
 ### API Routes Architecture
 
@@ -59,19 +62,32 @@ All routes in `app/api/` are Next.js Route Handlers with `maxDuration = 300` (5 
 
 #### 1. `/api/generate` - Google Veo 3.1 Video Generation
 
-**Flow**:
-1. Initialize `GoogleGenAI` client with user's API key (passed in request body)
-2. Call `generateMedia()` with model `veo-3.1-fast-generate-preview`
-3. Poll operation status every 10 seconds (max 10 minutes)
-4. When complete, fetch video from Google CDN with API key auth header
-5. Convert video buffer to base64 data URL (`data:video/mp4;base64,...`)
-6. Return base64 string to client for immediate display
+**Authentication Required**: Users must be signed in via Supabase Auth.
 
-**Important**: Videos are returned as base64 data URLs to avoid CORS issues and enable instant preview without external hosting.
+**Flow**:
+1. Authenticate user via `supabase.auth.getUser()`
+2. Check user credit balance (requires 1 credit for Veo generation)
+3. If insufficient credits, return 402 Payment Required error
+4. Fetch admin Gemini API key from `admin_api_keys` table (encrypted)
+5. Decrypt API key using `decryptApiKey()` helper
+6. Initialize `GoogleGenAI` client with admin API key
+7. Call `generateMedia()` with model `veo-3.1-fast-generate-preview`
+8. Poll operation status every 10 seconds (max 10 minutes)
+9. When complete, fetch video from Google CDN with API key auth header
+10. Convert video buffer to base64 data URL (`data:video/mp4;base64,...`)
+11. **Deduct 1 credit** from user balance via `deductCredits()` function
+12. Return base64 string + remaining credit balance to client
+
+**Important**:
+- Videos are returned as base64 data URLs to avoid CORS issues
+- Credits are only deducted **after successful** video generation
+- If generation fails, credits are not deducted
 
 #### 2. `/api/kling-motion` - Kling Motion Control
 
-**Authentication**: Uses JWT token generation with `jose` library:
+**Authentication Required**: Users must be signed in via Supabase Auth.
+
+**Kling API Authentication**: Uses JWT token generation with `jose` library:
 ```typescript
 const jwt = await new jose.SignJWT({})
   .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
@@ -81,20 +97,30 @@ const jwt = await new jose.SignJWT({})
 ```
 
 **Flow**:
-1. Generate JWT with Access Key + Secret Key
-2. POST to `https://api.klingai.com/v1/videos/motion-control` with:
+1. Authenticate user via `supabase.auth.getUser()`
+2. Check user credit balance (requires 2 credits for Kling generation)
+3. If insufficient credits, return 402 Payment Required error
+4. Fetch admin Kling Access Key and Secret Key from `admin_api_keys` table
+5. Decrypt both keys using `decryptApiKey()` helper
+6. Generate JWT with Access Key + Secret Key
+7. POST to `https://api.klingai.com/v1/videos/motion-control` with:
    - `image_url`: Base64 image data (without `data:image/...;base64,` prefix)
    - `video_url`: Public URL to reference video
    - `character_orientation`: "video" or "image"
    - `prompt`: Optional motion description
-3. Poll task status every 5 seconds via `GET /v1/videos/{taskId}`
-4. When `task_status === "succeed"`, return video URL from Kling R2 storage
+8. Poll task status every 5 seconds via `GET /v1/videos/{taskId}` (regenerate JWT for each request)
+9. When `task_status === "succeed"`, **deduct 2 credits** via `deductCredits()`
+10. Return video URL from Kling R2 storage + remaining credit balance
 
-**Key Detail**: JWT must be regenerated for each polling request due to short expiration.
+**Key Details**:
+- JWT must be regenerated for each polling request due to 30-minute expiration
+- Credits deducted only after successful generation
 
 #### 3. `/api/generate-script` - AI Script Generation
 
-Uses Gemini 2.5 Flash to generate structured video scripts. The prompt instructs the model to return a JSON array of clips:
+**Authentication Required**: Users must be signed in via Supabase Auth.
+
+Uses Gemini 2.5 Flash to generate structured video scripts. Fetches admin Gemini API key from database (no credit deduction for script generation). The prompt instructs the model to return a JSON array of clips:
 ```json
 [
   {
@@ -213,8 +239,17 @@ Kling's motion control creates videos where a character from an image mimics mot
 
 ### Environment Variables
 
-Required in `.env` (server-side only):
+Required in `.env`:
 ```
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key-here    # Publishable key (client-safe)
+SUPABASE_SERVICE_ROLE_KEY=your-secret-key-here             # Secret key (server-only!)
+
+# Encryption for API keys
+ENCRYPTION_SECRET_KEY=your-256-bit-hex-key-here
+
+# Cloudflare R2 Storage (for video uploads)
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
@@ -222,16 +257,116 @@ R2_BUCKET_NAME=vling
 R2_PUBLIC_URL=https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev
 ```
 
-These are only accessed in `/api/upload-video` route handler.
+**Key Notes**:
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Publishable key): Safe for client-side use, respects RLS policies
+- `SUPABASE_SERVICE_ROLE_KEY` (Secret key): Bypasses ALL RLS policies, server-side only, never exposed to client, used for credit deduction
+- `ENCRYPTION_SECRET_KEY`: Must be a 64-character hex string (256 bits). Generate via: `openssl rand -hex 32`
+- R2 credentials only accessed in `/api/upload-video` route handler
 
-### localStorage Keys
+### Database Architecture
 
-Client-side storage (managed by ApiKeySettings component):
-- `gemini-api-key` - Google Gemini/Veo API key
-- `kling-access-key` - Kling Access Key
-- `kling-secret-key` - Kling Secret Key
+**Core Tables**:
 
-Keys are loaded on mount via `useEffect` in `app/page.tsx` and saved when updated in settings.
+1. **`admin_api_keys`** - Stores encrypted AI provider API keys (admin-only access)
+   - `key_type`: 'gemini', 'kling_access', or 'kling_secret'
+   - `encrypted_key`: AES-256 encrypted key
+   - `is_active`: Boolean flag to enable/disable keys
+   - RLS Policy: Only users with `is_admin = true` can access
+
+2. **`user_profiles`** - User metadata and admin flag
+   - `user_id`: References `auth.users(id)`
+   - `is_admin`: Boolean flag (only ONE admin user)
+   - `display_name`, `avatar_url`: User profile info
+   - Auto-created on signup via trigger
+
+3. **`user_credits`** - Credit balance tracking
+   - `user_id`: References `auth.users(id)`
+   - `balance`: Current available credits (cannot go negative)
+   - `total_earned`, `total_spent`: Lifetime statistics
+   - Auto-created on signup with 10 free credits
+   - RLS Policy: Users can view own balance only; service role can modify
+
+4. **`credit_transactions`** - Audit log for all credit operations
+   - `user_id`: References `auth.users(id)`
+   - `amount`: Positive for additions, negative for deductions
+   - `transaction_type`: 'veo_generation', 'kling_generation', 'purchase', 'admin_grant', 'refund'
+   - `balance_after`: Snapshot of balance after transaction
+   - `metadata`: JSONB field storing generation details
+   - RLS Policy: Users can view own transactions only
+
+**Helper Functions** (PostgreSQL, called via service role):
+- `deduct_credits(user_id, amount, type, metadata)`: Atomically deducts credits with row locking
+- `add_credits(user_id, amount, type, metadata)`: Adds credits (for purchases, grants, refunds)
+
+Both functions automatically create entries in `credit_transactions` table for audit purposes.
+
+### Credit System Implementation
+
+**Credit Costs** (defined in `lib/credits.ts`):
+```typescript
+export const CREDIT_COSTS = {
+  veo: 1,        // 1 credit per Veo video
+  kling: 2,      // 2 credits per Kling motion control video
+}
+```
+
+**Credit Flow**:
+1. User signs up → `user_credits` row created with 10 free credits
+2. User initiates video generation → API route checks balance via `checkCredits()`
+3. If insufficient → Return 402 Payment Required error
+4. Generate video successfully → `deductCredits()` called
+5. Credit transaction recorded in `credit_transactions` table
+6. Updated balance returned to client
+
+**Important**: Credits are **never deducted on failure**. Only successful generations consume credits.
+
+**Credit Management**:
+- Users view balance in Settings tab (replaced old ApiKeySettings component)
+- Admins can grant credits via `add_credits()` function
+- Future: Payment integration to purchase credits
+
+### Admin API Key Management
+
+**Route**: `/api/admin/api-keys` (GET, POST, DELETE)
+
+All endpoints require:
+1. User authentication via Supabase Auth
+2. Admin status check: `user_profiles.is_admin = true`
+3. Return 403 Forbidden if not admin
+
+**GET** - Fetch all admin API keys:
+- Returns decrypted keys for admin viewing
+- Keys are decrypted using `decryptApiKey(encrypted_key, "admin")`
+- Response includes: `id`, `keyType`, `decryptedKey`, `isActive`, timestamps
+
+**POST** - Create or update API key:
+- Body: `{ keyType, apiKey }`
+- Valid key types: `gemini`, `kling_access`, `kling_secret`
+- Encrypts key using `encryptApiKey(apiKey, "admin")`
+- Uses UPSERT on `key_type` (unique constraint)
+- Sets `is_active = true` by default
+
+**DELETE** - Deactivate API key:
+- Body: `{ keyType }`
+- Sets `is_active = false` (soft delete for audit purposes)
+- Does not physically delete the row
+
+**Setting Up First Admin**:
+1. Run database migration: `supabase/migrations/20260111_admin_keys_credit_system.sql`
+2. Sign up a user account via the app
+3. Get user UUID from `auth.users` table
+4. Manually set admin flag:
+   ```sql
+   UPDATE user_profiles SET is_admin = TRUE WHERE user_id = 'your-user-uuid';
+   ```
+5. Admin can now access `/api/admin/api-keys` to add AI provider keys
+
+**Encryption Details**:
+- Algorithm: AES-256
+- Salt: SHA256 hash of `user_id + ENCRYPTION_SECRET_KEY`
+- For admin keys, `user_id` is hardcoded as `"admin"` string
+- Library: `crypto-js` package
+- Implementation: `lib/supabase/encryption.ts`
 
 ### Error Handling Patterns
 

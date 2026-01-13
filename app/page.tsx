@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
-import ApiKeySettings from "@/components/ApiKeySettings";
+import CreditBalance from "@/components/CreditBalance";
 
 
 interface GeneratedVideo {
@@ -23,9 +23,6 @@ interface ScriptClip {
 
 export default function Home() {
   const [sidebarTab, setSidebarTab] = useState("video");
-  const [apiKey, setApiKey] = useState("");
-  const [klingAccessKey, setKlingAccessKey] = useState("");
-  const [klingSecretKey, setKlingSecretKey] = useState("");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<GeneratedVideo | null>(null);
@@ -36,25 +33,13 @@ export default function Home() {
   const [scriptClips, setScriptClips] = useState<ScriptClip[]>([]);
   const [scriptIdea, setScriptIdea] = useState("");
 
-  // Load API keys from localStorage on mount
-  useEffect(() => {
-    const savedGeminiKey = localStorage.getItem("gemini-api-key");
-    if (savedGeminiKey) setApiKey(savedGeminiKey);
-
-    const savedKlingAK = localStorage.getItem("kling-access-key");
-    if (savedKlingAK) setKlingAccessKey(savedKlingAK);
-
-    const savedKlingSK = localStorage.getItem("kling-secret-key");
-    if (savedKlingSK) setKlingSecretKey(savedKlingSK);
-  }, []);
-
   //const handlePresetSelect = (preset: Preset) => {
   //  setPrompt(preset.prompt);
   //  setError(null);
   //};
 
   const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6) => {
-    if (!apiKey || !prompt.trim()) return;
+    if (!prompt.trim()) return;
 
     setIsGenerating(true);
     setError(null);
@@ -65,7 +50,6 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          apiKey,
           prompt: prompt.trim(),
           duration,
           aspectRatio,
@@ -99,7 +83,7 @@ export default function Home() {
   };
 
   const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string) => {
-    if (!apiKey || !clipPrompt.trim()) return;
+    if (!clipPrompt.trim()) return;
 
     setIsGenerating(true);
     setError(null);
@@ -110,7 +94,6 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          apiKey,
           prompt: clipPrompt.trim(),
           duration: Math.min(Math.max(clipDuration, 4), 8),
           aspectRatio,
@@ -165,20 +148,10 @@ export default function Home() {
 
       {sidebarTab === "settings" ? (
         <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
-          <ApiKeySettings
-            apiKey={apiKey}
-            onApiKeyChange={setApiKey}
-            klingAccessKey={klingAccessKey}
-            klingSecretKey={klingSecretKey}
-            onKlingAccessKeyChange={setKlingAccessKey}
-            onKlingSecretKeyChange={setKlingSecretKey}
-          />
+          <CreditBalance />
         </div>
       ) : (
         <MiddlePanel
-          apiKey={apiKey}
-          klingAccessKey={klingAccessKey}
-          klingSecretKey={klingSecretKey}
           //onPresetSelect={handlePresetSelect}
           onPromptChange={setPrompt}
           onGenerate={handleGenerate}

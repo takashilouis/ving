@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as jose from 'jose';
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { checkCredits, deductCredits, CREDIT_COSTS } from "@/lib/credits";
+import { decryptApiKey } from "@/lib/supabase/encryption";
 
 export const maxDuration = 300; // 15 minutes
 
@@ -23,13 +27,7 @@ async function generateKlingJWT(accessKey: string, secretKey: string): Promise<s
 
 export async function POST(request: NextRequest) {
     try {
-        const { accessKey, secretKey, imageBase64, videoUrl, orientation, prompt } = await request.json();
-
-        if (!accessKey || !secretKey) {
-            return NextResponse.json({
-                error: "Kling API requires both Access Key and Secret Key"
-            }, { status: 400 });
-        }
+        const { imageBase64, videoUrl, orientation, prompt } = await request.json();
 
         if (!imageBase64) {
             return NextResponse.json({ error: "Reference image is required" }, { status: 400 });
@@ -42,6 +40,63 @@ export async function POST(request: NextRequest) {
         if (!orientation) {
             return NextResponse.json({ error: "Character orientation is required" }, { status: 400 });
         }
+
+        // Authenticate user
+        const supabase = await createClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: "Unauthorized. Please sign in." },
+                { status: 401 }
+            );
+        }
+
+        // Check if user has sufficient credits
+        const requiredCredits = CREDIT_COSTS.kling;
+        const { hasEnough, balance } = await checkCredits(user.id, requiredCredits);
+
+        if (!hasEnough) {
+            return NextResponse.json(
+                {
+                    error: `Insufficient credits. You need ${requiredCredits} credit(s) but only have ${balance}.`,
+                    balance,
+                    required: requiredCredits,
+                },
+                { status: 402 } // 402 Payment Required
+            );
+        }
+
+        // Fetch admin Kling API keys
+        const adminSupabase = createAdminClient();
+        const { data: accessKeyData, error: accessKeyError } = await adminSupabase
+            .from("admin_api_keys")
+            .select("encrypted_key")
+            .eq("key_type", "kling_access")
+            .eq("is_active", true)
+            .single();
+
+        const { data: secretKeyData, error: secretKeyError } = await adminSupabase
+            .from("admin_api_keys")
+            .select("encrypted_key")
+            .eq("key_type", "kling_secret")
+            .eq("is_active", true)
+            .single();
+
+        if (accessKeyError || secretKeyError || !accessKeyData || !secretKeyData) {
+            console.error("Failed to fetch admin Kling keys:", { accessKeyError, secretKeyError });
+            return NextResponse.json(
+                { error: "Service temporarily unavailable. Please try again later." },
+                { status: 503 }
+            );
+        }
+
+        // Decrypt the API keys
+        const accessKey = decryptApiKey(accessKeyData.encrypted_key, "admin");
+        const secretKey = decryptApiKey(secretKeyData.encrypted_key, "admin");
 
         // Extract base64 data without the prefix (as per Kling docs)
         const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -133,12 +188,25 @@ export async function POST(request: NextRequest) {
                     console.log("Video URL:", videoResult?.url);
 
                     if (videoResult?.url) {
+                        // Deduct credits after successful generation
+                        await deductCredits(user.id, requiredCredits, "kling_generation", {
+                            prompt: prompt || "Motion Control Video",
+                            duration: parseFloat(videoResult.duration) || 5,
+                            orientation: orientation,
+                            mode: "pro",
+                        });
+
+                        // Get updated balance
+                        const { balance: newBalance } = await checkCredits(user.id, 0);
+
                         return NextResponse.json({
                             videoUrl: videoResult.url,
                             prompt: prompt || "Motion Control Video",
                             duration: parseFloat(videoResult.duration) || 5,
                             taskId,
                             videoId: videoResult.id,
+                            creditsUsed: requiredCredits,
+                            remainingBalance: newBalance,
                         });
                     }
                     // If success but no URL, log it but maybe continue or fail?

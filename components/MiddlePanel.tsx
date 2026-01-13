@@ -16,9 +16,6 @@ interface ScriptClip {
 }
 
 interface MiddlePanelProps {
-    apiKey: string;
-    klingAccessKey?: string;
-    klingSecretKey?: string;
     //onPresetSelect: (preset: Preset) => void;
     onPromptChange: (prompt: string) => void;
     onGenerate: (aspectRatio: string, duration: number) => void;
@@ -35,9 +32,6 @@ interface MiddlePanelProps {
 }
 
 export default function MiddlePanel({
-    apiKey,
-    klingAccessKey = "",
-    klingSecretKey = "",
     //onPresetSelect,
     onPromptChange,
     onGenerate,
@@ -195,8 +189,6 @@ export default function MiddlePanel({
                     {activeTab === "motion-control" && (
                         <motion.div key="motion-control" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <MotionControlTab
-                                klingAccessKey={klingAccessKey}
-                                klingSecretKey={klingSecretKey}
                                 onVideoGenerated={onMotionVideoGenerated}
                             />
                         </motion.div>
@@ -239,7 +231,6 @@ export default function MiddlePanel({
                             </div>
 
                             <ScriptGenerator
-                                apiKey={apiKey}
                                 idea={scriptIdea}
                                 onIdeaChange={onScriptIdeaChange}
                                 clips={scriptClips}
@@ -284,7 +275,7 @@ export default function MiddlePanel({
 
                     <button
                         onClick={() => onGenerate(aspectRatio, duration)}
-                        disabled={isGenerating || !apiKey || !prompt.trim()}
+                        disabled={isGenerating || !prompt.trim()}
                         className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating
                             ? "bg-green-500/50 text-black/50"
                             : "bg-green-500 text-black hover:bg-green-400"

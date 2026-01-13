@@ -4,12 +4,10 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 
 interface MotionControlTabProps {
-    klingAccessKey: string;
-    klingSecretKey: string;
     onVideoGenerated: (videoUrl: string, prompt: string) => void;
 }
 
-export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVideoGenerated }: MotionControlTabProps) {
+export default function MotionControlTab({ onVideoGenerated }: MotionControlTabProps) {
     // Reference Image (character to animate)
     const [refImage, setRefImage] = useState<File | null>(null);
     const [refImagePreview, setRefImagePreview] = useState<string | null>(null);
@@ -88,7 +86,7 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
 
     const handleGenerate = async () => {
         const hasVideo = videoInputMode === "url" ? videoUrl.trim() : videoFile;
-        if (!klingAccessKey || !klingSecretKey || !refImage || !hasVideo) return;
+        if (!refImage || !hasVideo) return;
 
         setIsGenerating(true);
         setError(null);
@@ -133,8 +131,6 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    accessKey: klingAccessKey,
-                    secretKey: klingSecretKey,
                     imageBase64,
                     videoUrl: finalVideoUrl,
                     orientation,
@@ -164,7 +160,6 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
         }
     };
 
-    const hasKlingKeys = !!klingAccessKey && !!klingSecretKey;
     const hasVideo = videoInputMode === "url" ? videoUrl.trim() : videoFile;
 
     return (
@@ -174,12 +169,6 @@ export default function MotionControlTab({ klingAccessKey, klingSecretKey, onVid
                 <h3 className="text-xs font-bold text-white">Motion Control</h3>
                 <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Kling 2.6</span>
             </div>
-
-            {!hasKlingKeys && (
-                <div className="p-3 bg-yellow-950/30 border border-yellow-800/30 rounded text-xs text-yellow-400">
-                    ⚠️ Please add your Kling Access Key and Secret Key in Settings first
-                </div>
-            )}
 
             {/* Reference Image */}
             <div>

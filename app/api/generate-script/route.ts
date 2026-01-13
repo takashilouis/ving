@@ -1,20 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptApiKey } from "@/lib/supabase/encryption";
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { apiKey, idea, videoLength } = body;
-
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: "API key is required" },
-                { status: 400 }
-            );
-        }
+        const { idea, videoLength } = body;
 
         if (!idea) {
             return NextResponse.json({ error: "Idea is required" }, { status: 400 });
         }
+
+        // Authenticate user
+        const supabase = await createClient();
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: "Unauthorized. Please sign in." },
+                { status: 401 }
+            );
+        }
+
+        // Fetch admin Gemini API key
+        const adminSupabase = createAdminClient();
+        const { data: keyData, error: keyError } = await adminSupabase
+            .from("admin_api_keys")
+            .select("encrypted_key")
+            .eq("key_type", "gemini")
+            .eq("is_active", true)
+            .single();
+
+        if (keyError || !keyData) {
+            console.error("Failed to fetch admin API key:", keyError);
+            return NextResponse.json(
+                { error: "Service temporarily unavailable. Please try again later." },
+                { status: 503 }
+            );
+        }
+
+        // Decrypt the API key
+        const apiKey = decryptApiKey(keyData.encrypted_key, "admin");
 
         // Calculate clip duration based on video length
 
