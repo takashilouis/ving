@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // Cloudflare R2 configuration
 // User needs to set these environment variables:
@@ -29,6 +30,7 @@ const getR2Client = () => {
 };
 
 export async function POST(request: NextRequest) {
+    return withCsrfProtection(request, async (req) => {
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
@@ -95,4 +97,5 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+    });
 }

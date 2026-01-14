@@ -60,8 +60,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 </h2>
                 <p className="text-gray-400 text-sm">
                   {mode === 'signin'
-                    ? 'Sign in to sync your API keys and video history'
-                    : 'Sign up to save your API keys and video history across devices'}
+                    ? 'Sign in to create latest trendy Gen-AI images/videos'
+                    : 'Sign up to generate creative AI images/videos'}
                 </p>
               </div>
 
@@ -69,9 +69,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               <div className="flex border-b border-[#2A2A2A] mb-6">
                 <button
                   onClick={() => setMode('signin')}
-                  className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                    mode === 'signin' ? 'text-green-500' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${mode === 'signin' ? 'text-green-500' : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Sign In
                   {mode === 'signin' && (
@@ -83,9 +82,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 </button>
                 <button
                   onClick={() => setMode('signup')}
-                  className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                    mode === 'signup' ? 'text-green-500' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${mode === 'signup' ? 'text-green-500' : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Sign Up
                   {mode === 'signup' && (

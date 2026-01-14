@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/context/AuthContext";
 
 interface CreditData {
   balance: number;
@@ -10,6 +11,7 @@ interface CreditData {
 }
 
 export default function CreditBalance() {
+  const { user, isLoading: authLoading } = useAuth();
   const [credits, setCredits] = useState<CreditData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,15 @@ export default function CreditBalance() {
   };
 
   useEffect(() => {
-    loadCredits();
-  }, []);
+    // Only load credits if user is authenticated
+    if (user) {
+      loadCredits();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="p-4 space-y-4">
         <h3 className="text-sm font-semibold text-white">Credit Balance</h3>
@@ -50,17 +57,83 @@ export default function CreditBalance() {
     );
   }
 
+  // Guest view - not authenticated
+  if (!user) {
+    return (
+      <div className="p-4 space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white">Credit Balance</h3>
+        </div>
+
+        {/* Guest Welcome Card */}
+        <div className="p-6 bg-gradient-to-br from-purple-500/20 to-blue-600/10 border border-purple-500/30 rounded-lg text-center space-y-3">
+          <div className="text-4xl mb-2">🎬</div>
+          <h4 className="text-base font-semibold text-white">Welcome to Ving</h4>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Sign in to view your credit balance and start generating amazing AI videos with Veo 3.1 and Kling Motion Control.
+          </p>
+        </div>
+
+        {/* Features Preview */}
+        <div className="space-y-3 p-3 bg-[#1E1E1E] rounded-lg">
+          <p className="text-xs font-semibold text-white mb-2">What You Get</p>
+
+          <div className="flex items-center gap-3">
+            <span className="text-lg">💎</span>
+            <div>
+              <p className="text-xs text-white font-medium">10 Free Credits</p>
+              <p className="text-xs text-gray-500">When you sign up</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🔮</span>
+            <div>
+              <p className="text-xs text-white font-medium">Veo 3.1 Generation</p>
+              <p className="text-xs text-gray-500">1 credit per video</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🎬</span>
+            <div>
+              <p className="text-xs text-white font-medium">Kling Motion Control</p>
+              <p className="text-xs text-gray-500">2 credits per video</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="pt-4 border-t border-[#1A1A1A]">
+          <p className="text-xs text-gray-500 leading-relaxed text-center">
+            Credits are only deducted after successful generation. No hidden fees.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="p-4 space-y-4">
         <h3 className="text-sm font-semibold text-white">Credit Balance</h3>
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-xs text-red-400">{error}</p>
+        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg space-y-3">
+          <div className="flex items-start gap-2">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-orange-400 mb-1">
+                Unable to Load Credits
+              </p>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                We're having trouble connecting to the server. Please check your connection and try again.
+              </p>
+            </div>
+          </div>
           <button
             onClick={loadCredits}
-            className="mt-2 text-xs text-green-400 hover:text-green-300 underline"
+            className="w-full py-2 px-4 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 rounded text-xs font-medium text-orange-300 transition-colors"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>

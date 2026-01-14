@@ -4,10 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkCredits, deductCredits, CREDIT_COSTS } from "@/lib/credits";
 import { decryptApiKey } from "@/lib/supabase/encryption";
+import { withCsrfProtection } from "@/lib/csrf";
 
 export const maxDuration = 300; // 5 minutes timeout for video generation
 
 export async function POST(request: NextRequest) {
+    return withCsrfProtection(request, async (req) => {
     try {
         const body = await request.json();
         const { prompt, duration, aspectRatio = "16:9" } = body;
@@ -21,6 +23,24 @@ export async function POST(request: NextRequest) {
 
         // Authenticate user
         const supabase = await createClient();
+
+        // Get session first for JWT token debugging
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // DEBUG: Log JWT token (only visible in server console, NOT in browser DevTools)
+        if (session?.access_token) {
+            console.log('=== JWT TOKEN DEBUG ===');
+            console.log('Full JWT Token:', session.access_token);
+            console.log('Token parts:', session.access_token.split('.'));
+            console.log('User from token:', {
+                id: session.user?.id,
+                email: session.user?.email,
+                exp: session.expires_at
+            });
+            console.log('======================');
+        }
+
+        // Get user for authentication check
         const {
             data: { user },
             error: authError,
@@ -209,4 +229,5 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+    });
 }

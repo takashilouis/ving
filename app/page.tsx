@@ -5,6 +5,9 @@ import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
 import CreditBalance from "@/components/CreditBalance";
+import AuthModal from "@/components/auth/AuthModal";
+import { useCsrfToken, withCsrfToken } from "@/lib/useCsrfToken";
+import { useAuth } from "@/lib/context/AuthContext";
 
 
 interface GeneratedVideo {
@@ -22,6 +25,8 @@ interface ScriptClip {
 }
 
 export default function Home() {
+  const { user, isLoading } = useAuth();
+  const { csrfToken } = useCsrfToken();
   const [sidebarTab, setSidebarTab] = useState("video");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,6 +37,7 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState<"veo" | "kling">("veo");
   const [scriptClips, setScriptClips] = useState<ScriptClip[]>([]);
   const [scriptIdea, setScriptIdea] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   //const handlePresetSelect = (preset: Preset) => {
   //  setPrompt(preset.prompt);
@@ -41,12 +47,18 @@ export default function Home() {
   const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6) => {
     if (!prompt.trim()) return;
 
+    // Check if user is authenticated
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setProgress("Starting video generation...");
 
     try {
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +66,7 @@ export default function Home() {
           duration,
           aspectRatio,
         }),
-      });
+      }));
 
       setProgress("Processing with Veo 3.1...");
       const data = await response.json();
@@ -85,12 +97,18 @@ export default function Home() {
   const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string) => {
     if (!clipPrompt.trim()) return;
 
+    // Check if user is authenticated
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setProgress(`Generating clip...`);
 
     try {
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -98,7 +116,7 @@ export default function Home() {
           duration: Math.min(Math.max(clipDuration, 4), 8),
           aspectRatio,
         }),
-      });
+      }));
 
       setProgress("Processing with Veo 3.1...");
       const data = await response.json();
@@ -143,38 +161,48 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0A]">
-      <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
+    <>
+      <div className="min-h-screen flex bg-[#0A0A0A]">
+        <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
 
-      {sidebarTab === "settings" ? (
-        <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
-          <CreditBalance />
-        </div>
-      ) : (
-        <MiddlePanel
-          //onPresetSelect={handlePresetSelect}
-          onPromptChange={setPrompt}
-          onGenerate={handleGenerate}
-          onGenerateClip={handleGenerateClip}
-          onMotionVideoGenerated={handleMotionVideoGenerated}
-          prompt={prompt}
+        {sidebarTab === "settings" ? (
+          <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
+            <CreditBalance />
+          </div>
+        ) : (
+          <MiddlePanel
+            //onPresetSelect={handlePresetSelect}
+            onPromptChange={setPrompt}
+            onGenerate={handleGenerate}
+            onGenerateClip={handleGenerateClip}
+            onMotionVideoGenerated={handleMotionVideoGenerated}
+            prompt={prompt}
+            isGenerating={isGenerating}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            scriptClips={scriptClips}
+            onScriptClipsChange={setScriptClips}
+            scriptIdea={scriptIdea}
+            onScriptIdeaChange={setScriptIdea}
+            csrfToken={csrfToken}
+          />
+        )}
+
+        <VideoPreview
+          video={currentVideo}
           isGenerating={isGenerating}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          scriptClips={scriptClips}
-          onScriptClipsChange={setScriptClips}
-          scriptIdea={scriptIdea}
-          onScriptIdeaChange={setScriptIdea}
+          progress={progress}
+          videoHistory={videoHistory}
+          onSelectVideo={handleSelectHistoryVideo}
         />
-      )}
+      </div>
 
-      <VideoPreview
-        video={currentVideo}
-        isGenerating={isGenerating}
-        progress={progress}
-        videoHistory={videoHistory}
-        onSelectVideo={handleSelectHistoryVideo}
+      {/* Auth Modal - shown when guest tries to generate */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        defaultMode="signin"
       />
-    </div>
+    </>
   );
 }

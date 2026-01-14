@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptApiKey } from "@/lib/supabase/encryption";
+import { withCsrfProtection } from "@/lib/csrf";
 
 export async function POST(request: NextRequest) {
+    return withCsrfProtection(request, async (req) => {
     try {
         const body = await request.json();
         const { idea, videoLength } = body;
@@ -188,4 +190,5 @@ Return ONLY the JSON array, no other text.`,
             { status: 500 }
         );
     }
+    });
 }

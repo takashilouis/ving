@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { withCsrfToken } from "@/lib/useCsrfToken";
 
 interface ScriptClip {
     id: string;
@@ -15,6 +16,7 @@ interface ScriptGeneratorProps {
     clips: ScriptClip[];
     onClipsChange: (clips: ScriptClip[]) => void;
     onGenerateClip: (prompt: string, duration: number) => void;
+    csrfToken: string | null;
 }
 
 // Format duration properly
@@ -30,7 +32,8 @@ export default function ScriptGenerator({
     onIdeaChange,
     clips,
     onClipsChange,
-    onGenerateClip
+    onGenerateClip,
+    csrfToken
 }: ScriptGeneratorProps) {
     const [videoLength, setVideoLength] = useState(30);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -46,7 +49,7 @@ export default function ScriptGenerator({
         setError(null);
 
         try {
-            const response = await fetch("/api/generate-script", {
+            const response = await fetch("/api/generate-script", withCsrfToken(csrfToken, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -55,7 +58,7 @@ export default function ScriptGenerator({
                     idea: idea.trim(),
                     videoLength,
                 }),
-            });
+            }));
 
             const data = await response.json();
 

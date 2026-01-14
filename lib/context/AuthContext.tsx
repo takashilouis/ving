@@ -45,10 +45,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isDemoMode = !user
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+
+    // DEBUG: Always log to see what we got
+    console.log('🔍 Sign in response:', { data, error })
+
+    // DEBUG: Log JWT token (visible in browser console)
+    if (data?.session?.access_token) {
+      console.log('╔═══════════════════════════════════════════════════════════╗')
+      console.log('║           🔐 JWT TOKEN DEBUG (Login)                      ║')
+      console.log('╚═══════════════════════════════════════════════════════════╝')
+      console.log('📝 Full JWT Token:')
+      console.log(data.session.access_token)
+      console.log('\n📦 Token Structure (3 parts separated by dots):')
+      const parts = data.session.access_token.split('.')
+      console.log('  1️⃣  Header (Algorithm & Type):', parts[0])
+      console.log('  2️⃣  Payload (User Data):', parts[1])
+      console.log('  3️⃣  Signature (Verification):', parts[2])
+      console.log('\n👤 Decoded User Info:')
+      console.log('  • User ID:', data.session.user.id)
+      console.log('  • Email:', data.session.user.email)
+      console.log('  • Expires At:', new Date(data.session.expires_at! * 1000).toLocaleString())
+      console.log('  • Issued At:', new Date(data.session.user.created_at).toLocaleString())
+      console.log('\n🔗 Test on jwt.io: https://jwt.io')
+      console.log('   Paste the token above to decode it!')
+      console.log('═══════════════════════════════════════════════════════════')
+
+      // Also send to server for terminal logging
+      fetch('/api/debug/log-jwt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: data.session.access_token })
+      }).catch(e => console.error('Failed to send JWT to server:', e))
+    } else {
+      console.log('❌ No JWT token in response!')
+    }
+
     return { error }
   }
 
