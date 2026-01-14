@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkCredits, deductCredits, CREDIT_COSTS } from "@/lib/credits";
 import { decryptApiKey } from "@/lib/supabase/encryption";
+import { withCsrfProtection } from "@/lib/csrf";
 
 export const maxDuration = 300; // 15 minutes
 
@@ -26,6 +27,7 @@ async function generateKlingJWT(accessKey: string, secretKey: string): Promise<s
 }
 
 export async function POST(request: NextRequest) {
+    return withCsrfProtection(request, async (req) => {
     try {
         const { imageBase64, videoUrl, orientation, prompt } = await request.json();
 
@@ -236,4 +238,5 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+    });
 }

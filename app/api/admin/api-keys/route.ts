@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptApiKey, decryptApiKey } from "@/lib/supabase/encryption";
+import { withCsrfProtection } from "@/lib/csrf";
 
 export const maxDuration = 30;
 
@@ -91,6 +92,7 @@ export async function GET(req: NextRequest) {
  * Body: { keyType: string, apiKey: string }
  */
 export async function POST(req: NextRequest) {
+  return withCsrfProtection(req, async (request) => {
   try {
     const supabase = await createClient();
 
@@ -174,6 +176,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**
@@ -182,6 +185,7 @@ export async function POST(req: NextRequest) {
  * Body: { keyType: string }
  */
 export async function DELETE(req: NextRequest) {
+  return withCsrfProtection(req, async (request) => {
   try {
     const supabase = await createClient();
 
@@ -243,4 +247,5 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

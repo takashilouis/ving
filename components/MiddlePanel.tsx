@@ -29,6 +29,7 @@ interface MiddlePanelProps {
     onScriptClipsChange: (clips: ScriptClip[]) => void;
     scriptIdea: string;
     onScriptIdeaChange: (idea: string) => void;
+    csrfToken: string | null;
 }
 
 export default function MiddlePanel({
@@ -45,6 +46,7 @@ export default function MiddlePanel({
     onScriptClipsChange,
     scriptIdea,
     onScriptIdeaChange,
+    csrfToken,
 }: MiddlePanelProps) {
     const [activeTab, setActiveTab] = useState<SubTab>("text-to-video");
     const [showPresets, setShowPresets] = useState(false);
@@ -190,6 +192,7 @@ export default function MiddlePanel({
                         <motion.div key="motion-control" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <MotionControlTab
                                 onVideoGenerated={onMotionVideoGenerated}
+                                csrfToken={csrfToken}
                             />
                         </motion.div>
                     )}
@@ -238,6 +241,7 @@ export default function MiddlePanel({
                                 onGenerateClip={(clipPrompt, clipDuration) => {
                                     onGenerateClip(clipPrompt, clipDuration, aspectRatio);
                                 }}
+                                csrfToken={csrfToken}
                             />
                         </motion.div>
                     )}

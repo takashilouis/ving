@@ -2,12 +2,14 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { withCsrfToken } from "@/lib/useCsrfToken";
 
 interface MotionControlTabProps {
     onVideoGenerated: (videoUrl: string, prompt: string) => void;
+    csrfToken: string | null;
 }
 
-export default function MotionControlTab({ onVideoGenerated }: MotionControlTabProps) {
+export default function MotionControlTab({ onVideoGenerated, csrfToken }: MotionControlTabProps) {
     // Reference Image (character to animate)
     const [refImage, setRefImage] = useState<File | null>(null);
     const [refImagePreview, setRefImagePreview] = useState<string | null>(null);
@@ -111,10 +113,10 @@ export default function MotionControlTab({ onVideoGenerated }: MotionControlTabP
                 const formData = new FormData();
                 formData.append("file", videoFile);
 
-                const uploadResponse = await fetch("/api/upload-video", {
+                const uploadResponse = await fetch("/api/upload-video", withCsrfToken(csrfToken, {
                     method: "POST",
                     body: formData,
-                });
+                }));
 
                 const uploadData = await uploadResponse.json();
 
@@ -127,7 +129,7 @@ export default function MotionControlTab({ onVideoGenerated }: MotionControlTabP
 
             setProgress("Sending to Kling AI...");
 
-            const response = await fetch("/api/kling-motion", {
+            const response = await fetch("/api/kling-motion", withCsrfToken(csrfToken, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -136,7 +138,7 @@ export default function MotionControlTab({ onVideoGenerated }: MotionControlTabP
                     orientation,
                     prompt: motionPrompt.trim() || undefined,
                 }),
-            });
+            }));
 
             // Update progress while waiting
             setProgress("Generating video (this may take 2-5 minutes)...");
