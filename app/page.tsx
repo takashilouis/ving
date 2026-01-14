@@ -4,10 +4,13 @@ import { useState } from "react";
 import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
+import ImageGenerationPanel from "@/components/ImageGenerationPanel";
+import ImagePreview from "@/components/ImagePreview";
 import CreditBalance from "@/components/CreditBalance";
 import AuthModal from "@/components/auth/AuthModal";
 import { useCsrfToken, withCsrfToken } from "@/lib/useCsrfToken";
 import { useAuth } from "@/lib/context/AuthContext";
+import { GeneratedImage } from "@/lib/types";
 
 
 interface GeneratedVideo {
@@ -38,6 +41,12 @@ export default function Home() {
   const [scriptClips, setScriptClips] = useState<ScriptClip[]>([]);
   const [scriptIdea, setScriptIdea] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Image generation state
+  const [currentImage, setCurrentImage] = useState<GeneratedImage | null>(null);
+  const [imageHistory, setImageHistory] = useState<GeneratedImage[]>([]);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageProgress, setImageProgress] = useState("");
 
   //const handlePresetSelect = (preset: Preset) => {
   //  setPrompt(preset.prompt);
@@ -160,41 +169,68 @@ export default function Home() {
     setCurrentVideo(video);
   };
 
+  // Image generation handlers
+  const handleImageGenerated = (image: GeneratedImage) => {
+    setCurrentImage(image);
+    setImageHistory((prev) => [image, ...prev].slice(0, 20));
+  };
+
+  const handleSelectHistoryImage = (image: GeneratedImage) => {
+    setCurrentImage(image);
+  };
+
   return (
     <>
       <div className="min-h-screen flex bg-[#0A0A0A]">
         <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
 
         {sidebarTab === "settings" ? (
-          <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
-            <CreditBalance />
-          </div>
+          <>
+            <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
+              <CreditBalance />
+            </div>
+            <div className="flex-1 bg-[#0A0A0A]" />
+          </>
+        ) : sidebarTab === "image" ? (
+          <>
+            <ImageGenerationPanel
+              onImageGenerated={handleImageGenerated}
+              csrfToken={csrfToken}
+            />
+            <ImagePreview
+              image={currentImage}
+              isGenerating={isGeneratingImage}
+              progress={imageProgress}
+              imageHistory={imageHistory}
+              onSelectImage={handleSelectHistoryImage}
+            />
+          </>
         ) : (
-          <MiddlePanel
-            //onPresetSelect={handlePresetSelect}
-            onPromptChange={setPrompt}
-            onGenerate={handleGenerate}
-            onGenerateClip={handleGenerateClip}
-            onMotionVideoGenerated={handleMotionVideoGenerated}
-            prompt={prompt}
-            isGenerating={isGenerating}
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            scriptClips={scriptClips}
-            onScriptClipsChange={setScriptClips}
-            scriptIdea={scriptIdea}
-            onScriptIdeaChange={setScriptIdea}
-            csrfToken={csrfToken}
-          />
+          <>
+            <MiddlePanel
+              onPromptChange={setPrompt}
+              onGenerate={handleGenerate}
+              onGenerateClip={handleGenerateClip}
+              onMotionVideoGenerated={handleMotionVideoGenerated}
+              prompt={prompt}
+              isGenerating={isGenerating}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              scriptClips={scriptClips}
+              onScriptClipsChange={setScriptClips}
+              scriptIdea={scriptIdea}
+              onScriptIdeaChange={setScriptIdea}
+              csrfToken={csrfToken}
+            />
+            <VideoPreview
+              video={currentVideo}
+              isGenerating={isGenerating}
+              progress={progress}
+              videoHistory={videoHistory}
+              onSelectVideo={handleSelectHistoryVideo}
+            />
+          </>
         )}
-
-        <VideoPreview
-          video={currentVideo}
-          isGenerating={isGenerating}
-          progress={progress}
-          videoHistory={videoHistory}
-          onSelectVideo={handleSelectHistoryVideo}
-        />
       </div>
 
       {/* Auth Modal - shown when guest tries to generate */}

@@ -1,14 +1,33 @@
 import { createAdminClient } from './supabase/admin'
 
 export interface CreditCost {
-  veo: number      // Cost per Veo generation
-  kling: number    // Cost per Kling generation
+  veo: number           // Cost per Veo generation
+  kling: number         // Cost per Kling generation
+  image_flash_1k: number  // Cost per Gemini 2.5 Flash image
+  image_pro_1k: number    // Cost per Gemini 3.0 Pro 1K image
+  image_pro_2k: number    // Cost per Gemini 3.0 Pro 2K image
+  image_pro_4k: number    // Cost per Gemini 3.0 Pro 4K image
 }
 
 // Define credit costs for different operations
 export const CREDIT_COSTS: CreditCost = {
-  veo: 1,        // 1 credit per Veo video
-  kling: 2,      // 2 credits per Kling motion control video
+  veo: 1,             // 1 credit per Veo video
+  kling: 2,           // 2 credits per Kling motion control video
+  image_flash_1k: 1,  // 1 credit per Flash image
+  image_pro_1k: 1,    // 1 credit per Pro 1K image
+  image_pro_2k: 2,    // 2 credits per Pro 2K image
+  image_pro_4k: 3,    // 3 credits per Pro 4K image
+}
+
+/**
+ * Get credit cost for image generation based on model and quality
+ */
+export function getImageCreditCost(model: 'flash' | 'pro', quality: '1K' | '2K' | '4K'): number {
+  if (model === 'flash') {
+    return CREDIT_COSTS.image_flash_1k
+  }
+  const key = `image_pro_${quality.toLowerCase()}` as keyof CreditCost
+  return CREDIT_COSTS[key]
 }
 
 /**
