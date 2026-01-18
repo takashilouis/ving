@@ -113,11 +113,20 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
               {/* Footer */}
               <div className="mt-6 pt-6 border-t border-[#2A2A2A]">
-                <p className="text-xs text-gray-500 text-center">
-                  Your API keys remain private and secure.
-                  <br />
-                  Demo mode available without signup.
-                </p>
+                <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>10 free credits</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>No credit card</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
