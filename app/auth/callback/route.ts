@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Successful authentication - redirect to home page
-      return NextResponse.redirect(`${origin}/`)
+      // Successful authentication - redirect to dashboard
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
 
