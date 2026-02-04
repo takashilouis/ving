@@ -1,13 +1,25 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { ImageModel, ImageQuality, GeneratedImage } from "@/lib/types";
-import { CREDIT_COSTS, getImageCreditCost } from "@/lib/credits";
+import { motion, AnimatePresence } from "framer-motion";
+import { ImageModel, ImageQuality, GeneratedImage, FusionImage, FusionQuality } from "@/lib/types";
+import { getImageCreditCost } from "@/lib/credits";
+import ImageFusionTab from "./ImageFusionTab";
+
+type ImageSubTab = "generate" | "fusion";
 
 interface ImageGenerationPanelProps {
     onImageGenerated: (image: GeneratedImage) => void;
     csrfToken: string | null;
+    // Fusion state (lifted to dashboard for persistence)
+    fusionImages: FusionImage[];
+    onFusionImagesChange: (images: FusionImage[]) => void;
+    fusionPrompt: string;
+    onFusionPromptChange: (prompt: string) => void;
+    fusionAspectRatio: string;
+    onFusionAspectRatioChange: (ratio: string) => void;
+    fusionQuality: FusionQuality;
+    onFusionQualityChange: (quality: FusionQuality) => void;
 }
 
 const ASPECT_RATIOS = [
@@ -21,7 +33,18 @@ const ASPECT_RATIOS = [
 export default function ImageGenerationPanel({
     onImageGenerated,
     csrfToken,
+    fusionImages,
+    onFusionImagesChange,
+    fusionPrompt,
+    onFusionPromptChange,
+    fusionAspectRatio,
+    onFusionAspectRatioChange,
+    fusionQuality,
+    onFusionQualityChange,
 }: ImageGenerationPanelProps) {
+    const [activeTab, setActiveTab] = useState<ImageSubTab>("generate");
+
+    // Generate tab state
     const [prompt, setPrompt] = useState("");
     const [model, setModel] = useState<ImageModel>("pro");
     const [quality, setQuality] = useState<ImageQuality>("1K");
@@ -90,25 +113,87 @@ export default function ImageGenerationPanel({
     };
 
     return (
-        <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col">
+        <div className="w-[370px] h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-[#1A1A1A]">
                 <div className="flex items-center gap-2">
                     <h1 className="text-sm font-bold text-white">AI Image Generator</h1>
-                    <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                            model === "flash"
-                                ? "bg-yellow-500/20 text-yellow-400"
-                                : "bg-blue-500/20 text-blue-400"
-                        }`}
-                    >
-                        {model === "flash" ? "FLASH 2.5" : "PRO 3.0"}
-                    </span>
+                    {activeTab === "generate" && (
+                        <span
+                            className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                                model === "flash"
+                                    ? "bg-yellow-500/20 text-yellow-400"
+                                    : "bg-blue-500/20 text-blue-400"
+                            }`}
+                        >
+                            {model === "flash" ? "FLASH 2.5" : "PRO 3.0"}
+                        </span>
+                    )}
+                    {activeTab === "fusion" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-purple-500/20 text-purple-400">
+                            FUSION
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Sub-Tabs */}
+            <div className="border-b border-[#1A1A1A]">
+                <div className="flex">
+                    {[
+                        { id: "generate", label: "Generate" },
+                        { id: "fusion", label: "Fusion Studio" },
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as ImageSubTab)}
+                            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                                activeTab === tab.id
+                                    ? "text-white border-b-2 border-green-500"
+                                    : "text-gray-500 hover:text-gray-300"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto">
+                <AnimatePresence mode="wait">
+                    {/* Fusion Studio Tab */}
+                    {activeTab === "fusion" && (
+                        <motion.div
+                            key="fusion"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <ImageFusionTab
+                                onImageGenerated={onImageGenerated}
+                                csrfToken={csrfToken}
+                                images={fusionImages}
+                                onImagesChange={onFusionImagesChange}
+                                prompt={fusionPrompt}
+                                onPromptChange={onFusionPromptChange}
+                                aspectRatio={fusionAspectRatio}
+                                onAspectRatioChange={onFusionAspectRatioChange}
+                                quality={fusionQuality}
+                                onQualityChange={onFusionQualityChange}
+                            />
+                        </motion.div>
+                    )}
+
+                    {/* Generate Tab */}
+                    {activeTab === "generate" && (
+                        <motion.div
+                            key="generate"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="p-4 space-y-4"
+                        >
                 {/* Prompt Input */}
                 <div>
                     <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
@@ -230,48 +315,55 @@ export default function ImageGenerationPanel({
                         <p className="text-xs text-red-400">{error}</p>
                     </motion.div>
                 )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {/* Generate Button */}
-            <div className="p-4 border-t border-[#1A1A1A]">
-                <button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                    className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
-                        isGenerating || !prompt.trim()
-                            ? "bg-green-500/50 text-black/50 cursor-not-allowed"
-                            : "bg-green-500 text-black hover:bg-green-400"
-                    }`}
-                >
-                    {isGenerating ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <motion.span
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            >
-                                ⚙️
-                            </motion.span>
-                            Generating...
-                        </span>
-                    ) : (
-                        <span className="flex items-center justify-center gap-2">
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                <circle cx="8.5" cy="8.5" r="1.5" />
-                                <path d="m21 15-5-5L5 21" />
-                            </svg>
-                            Generate Image
-                        </span>
-                    )}
-                </button>
-            </div>
+            {/* Generate Button - Only show for generate tab */}
+            {activeTab === "generate" && (
+                <div className="p-4 border-t border-[#1A1A1A]">
+                    <button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || !prompt.trim()}
+                        className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
+                            isGenerating || !prompt.trim()
+                                ? "bg-green-500/50 text-black/50 cursor-not-allowed"
+                                : "bg-green-500 text-black hover:bg-green-400"
+                        }`}
+                    >
+                        {isGenerating ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <motion.span
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                                    </svg>
+                                </motion.span>
+                                Generating...
+                            </span>
+                        ) : (
+                            <span className="flex items-center justify-center gap-2">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <path d="m21 15-5-5L5 21" />
+                                </svg>
+                                Generate Image
+                            </span>
+                        )}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

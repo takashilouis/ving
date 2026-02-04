@@ -39,3 +39,17 @@ export interface ImageGenerationConfig {
     quality: ImageQuality;
     aspectRatio: string;
 }
+
+// Fusion types
+export type FusionQuality = 'standard' | 'pro';
+
+export interface FusionImage {
+    id: string;
+    data: string;  // base64 data URL
+    label: string; // "model", "accessory", "background", etc.
+}
+
+export interface GeneratedFusionImage extends Omit<GeneratedImage, 'model' | 'quality'> {
+    sourceImages: number;
+    fusionQuality: FusionQuality;
+}

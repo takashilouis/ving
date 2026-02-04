@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { GeneratedImage } from "@/lib/types";
 
@@ -18,6 +19,19 @@ export default function ImagePreview({
     imageHistory = [],
     onSelectImage,
 }: ImagePreviewProps) {
+    const [copied, setCopied] = useState(false);
+
+    const copyPrompt = async () => {
+        if (!image?.prompt) return;
+        try {
+            await navigator.clipboard.writeText(image.prompt);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            console.error("Copy failed:", error);
+        }
+    };
+
     const downloadImage = () => {
         if (!image) return;
 
@@ -45,7 +59,7 @@ export default function ImagePreview({
     };
 
     return (
-        <div className="flex-1 bg-[#0A0A0A] flex flex-col">
+        <div className="flex-1 bg-[#0A0A0A] flex flex-col h-full overflow-hidden">
             {/* Top Bar */}
             <div className="border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
                 <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
@@ -93,7 +107,7 @@ export default function ImagePreview({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-y-auto">
                 {/* Image Area */}
                 <div className="flex-1 flex items-center justify-center p-6">
                     {isGenerating ? (
@@ -204,10 +218,26 @@ export default function ImagePreview({
                                     className="w-full h-auto max-h-[70vh] object-contain"
                                 />
                             </div>
-                            <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg">
-                                <p className="text-xs text-gray-400 line-clamp-2">
+                            <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg flex items-start gap-2">
+                                <p className="text-xs text-gray-400 line-clamp-2 flex-1">
                                     {image.prompt}
                                 </p>
+                                <button
+                                    onClick={copyPrompt}
+                                    className="flex-shrink-0 p-1.5 hover:bg-[#2A2A2A] rounded transition-colors text-gray-400 hover:text-white"
+                                    title="Copy prompt"
+                                >
+                                    {copied ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-400">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </svg>
+                                    )}
+                                </button>
                             </div>
                         </motion.div>
                     ) : (
