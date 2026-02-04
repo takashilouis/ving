@@ -56,7 +56,7 @@ export default function VideoPreview({
     };
 
     return (
-        <div className="flex-1 bg-[#0A0A0A] flex flex-col">
+        <div className="flex-1 h-full bg-[#0A0A0A] flex flex-col overflow-y-auto">
             {/* Top Bar */}
             <div className="border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
                 <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">

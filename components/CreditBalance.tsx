@@ -90,7 +90,7 @@ export default function CreditBalance() {
             <span className="text-lg">🔮</span>
             <div>
               <p className="text-xs text-white font-medium">Veo 3.1 Generation</p>
-              <p className="text-xs text-gray-500">1 credit per video</p>
+              <p className="text-xs text-gray-500">2 credits per video</p>
             </div>
           </div>
 
@@ -106,7 +106,7 @@ export default function CreditBalance() {
             <span className="text-lg">🖼️</span>
             <div>
               <p className="text-xs text-white font-medium">AI Image Generation</p>
-              <p className="text-xs text-gray-500">1-3 credits per image</p>
+              <p className="text-xs text-gray-500">1-2 credits per image</p>
             </div>
           </div>
         </div>

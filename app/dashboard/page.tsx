@@ -10,7 +10,7 @@ import CreditBalance from "@/components/CreditBalance";
 import AuthModal from "@/components/auth/AuthModal";
 import { useCsrfToken, withCsrfToken } from "@/lib/useCsrfToken";
 import { useAuth } from "@/lib/context/AuthContext";
-import { GeneratedImage } from "@/lib/types";
+import { GeneratedImage, FusionImage, FusionQuality } from "@/lib/types";
 
 
 interface GeneratedVideo {
@@ -47,6 +47,12 @@ export default function Dashboard() {
   const [imageHistory, setImageHistory] = useState<GeneratedImage[]>([]);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageProgress, setImageProgress] = useState("");
+
+  // Fusion state (lifted to persist across tab switches)
+  const [fusionImages, setFusionImages] = useState<FusionImage[]>([]);
+  const [fusionPrompt, setFusionPrompt] = useState("");
+  const [fusionAspectRatio, setFusionAspectRatio] = useState("16:9");
+  const [fusionQuality, setFusionQuality] = useState<FusionQuality>("standard");
 
   //const handlePresetSelect = (preset: Preset) => {
   //  setPrompt(preset.prompt);
@@ -181,12 +187,12 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="min-h-screen flex bg-[#0A0A0A]">
+      <div className="h-screen flex bg-[#0A0A0A] overflow-hidden">
         <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
 
         {sidebarTab === "settings" ? (
           <>
-            <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A]">
+            <div className="w-[370px] h-full overflow-y-auto bg-[#0A0A0A] border-r border-[#1A1A1A]">
               <CreditBalance />
             </div>
             <div className="flex-1 bg-[#0A0A0A]" />
@@ -196,6 +202,14 @@ export default function Dashboard() {
             <ImageGenerationPanel
               onImageGenerated={handleImageGenerated}
               csrfToken={csrfToken}
+              fusionImages={fusionImages}
+              onFusionImagesChange={setFusionImages}
+              fusionPrompt={fusionPrompt}
+              onFusionPromptChange={setFusionPrompt}
+              fusionAspectRatio={fusionAspectRatio}
+              onFusionAspectRatioChange={setFusionAspectRatio}
+              fusionQuality={fusionQuality}
+              onFusionQualityChange={setFusionQuality}
             />
             <ImagePreview
               image={currentImage}
