@@ -120,11 +120,10 @@ export default function ImageGenerationPanel({
                     <h1 className="text-sm font-bold text-white">AI Image Generator</h1>
                     {activeTab === "generate" && (
                         <span
-                            className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                                model === "flash"
-                                    ? "bg-yellow-500/20 text-yellow-400"
-                                    : "bg-blue-500/20 text-blue-400"
-                            }`}
+                            className={`text-[10px] px-2 py-0.5 rounded font-medium ${model === "flash"
+                                ? "bg-yellow-500/20 text-yellow-400"
+                                : "bg-blue-500/20 text-blue-400"
+                                }`}
                         >
                             {model === "flash" ? "FLASH 2.5" : "PRO 3.0"}
                         </span>
@@ -142,16 +141,15 @@ export default function ImageGenerationPanel({
                 <div className="flex">
                     {[
                         { id: "generate", label: "Generate" },
-                        { id: "fusion", label: "Fusion Studio" },
+                        { id: "fusion", label: "Fusion" },
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as ImageSubTab)}
-                            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
-                                activeTab === tab.id
-                                    ? "text-white border-b-2 border-green-500"
-                                    : "text-gray-500 hover:text-gray-300"
-                            }`}
+                            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${activeTab === tab.id
+                                ? "text-white border-b-2 border-green-500"
+                                : "text-gray-500 hover:text-gray-300"
+                                }`}
                         >
                             {tab.label}
                         </button>
@@ -162,7 +160,7 @@ export default function ImageGenerationPanel({
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
                 <AnimatePresence mode="wait">
-                    {/* Fusion Studio Tab */}
+                    {/* Fusion Tab */}
                     {activeTab === "fusion" && (
                         <motion.div
                             key="fusion"
@@ -194,127 +192,124 @@ export default function ImageGenerationPanel({
                             exit={{ opacity: 0 }}
                             className="p-4 space-y-4"
                         >
-                {/* Prompt Input */}
-                <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
-                        Prompt
-                    </label>
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Describe your image in detail..."
-                        className="dark-input w-full px-3 py-3 text-xs min-h-[120px] resize-none"
-                        disabled={isGenerating}
-                    />
-                </div>
+                            {/* Prompt Input */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                                    Prompt
+                                </label>
+                                <textarea
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder="Describe your image in detail..."
+                                    className="dark-input w-full px-3 py-3 text-xs min-h-[120px] resize-none"
+                                    disabled={isGenerating}
+                                />
+                            </div>
 
-                {/* Model Selection */}
-                <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
-                        Model
-                    </label>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => handleModelChange("flash")}
-                            disabled={isGenerating}
-                            className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                                model === "flash"
-                                    ? "bg-green-500 text-black"
-                                    : "bg-[#1E1E1E] text-gray-400 hover:text-white hover:bg-[#2A2A2A]"
-                            }`}
-                        >
-                            Gemini 2.5 Flash
-                        </button>
-                        <button
-                            onClick={() => handleModelChange("pro")}
-                            disabled={isGenerating}
-                            className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                                model === "pro"
-                                    ? "bg-green-500 text-black"
-                                    : "bg-[#1E1E1E] text-gray-400 hover:text-white hover:bg-[#2A2A2A]"
-                            }`}
-                        >
-                            Gemini 3.0 Pro
-                        </button>
-                    </div>
-                </div>
-
-                {/* Quality Selection */}
-                <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
-                        Quality
-                    </label>
-                    <div className="flex gap-2">
-                        {(["1K", "2K", "4K"] as ImageQuality[]).map((q) => {
-                            const isDisabled = model === "flash" && q !== "1K";
-                            return (
-                                <button
-                                    key={q}
-                                    onClick={() => setQuality(q)}
-                                    disabled={isDisabled || isGenerating}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                                        quality === q && !isDisabled
+                            {/* Model Selection */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                                    Model
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleModelChange("flash")}
+                                        disabled={isGenerating}
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${model === "flash"
                                             ? "bg-green-500 text-black"
-                                            : isDisabled
-                                            ? "bg-[#1E1E1E] text-gray-600 cursor-not-allowed"
                                             : "bg-[#1E1E1E] text-gray-400 hover:text-white hover:bg-[#2A2A2A]"
-                                    }`}
-                                    title={isDisabled ? "Only available for Pro model" : ""}
+                                            }`}
+                                    >
+                                        Gemini 2.5 Flash
+                                    </button>
+                                    <button
+                                        onClick={() => handleModelChange("pro")}
+                                        disabled={isGenerating}
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${model === "pro"
+                                            ? "bg-green-500 text-black"
+                                            : "bg-[#1E1E1E] text-gray-400 hover:text-white hover:bg-[#2A2A2A]"
+                                            }`}
+                                    >
+                                        Gemini 3.0 Pro
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Quality Selection */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                                    Quality
+                                </label>
+                                <div className="flex gap-2">
+                                    {(["1K", "2K", "4K"] as ImageQuality[]).map((q) => {
+                                        const isDisabled = model === "flash" && q !== "1K";
+                                        return (
+                                            <button
+                                                key={q}
+                                                onClick={() => setQuality(q)}
+                                                disabled={isDisabled || isGenerating}
+                                                className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${quality === q && !isDisabled
+                                                    ? "bg-green-500 text-black"
+                                                    : isDisabled
+                                                        ? "bg-[#1E1E1E] text-gray-600 cursor-not-allowed"
+                                                        : "bg-[#1E1E1E] text-gray-400 hover:text-white hover:bg-[#2A2A2A]"
+                                                    }`}
+                                                title={isDisabled ? "Only available for Pro model" : ""}
+                                            >
+                                                {q}
+                                                {q === "4K" && (
+                                                    <span className="ml-1 text-[9px] opacity-70">PRO</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {model === "flash" && (
+                                    <p className="text-[10px] text-gray-500 mt-1.5">
+                                        Flash model generates at fixed 1024x1024 resolution
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Aspect Ratio */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                                    Aspect Ratio
+                                </label>
+                                <select
+                                    value={aspectRatio}
+                                    onChange={(e) => setAspectRatio(e.target.value)}
+                                    disabled={isGenerating}
+                                    className="w-full bg-[#1E1E1E] text-gray-300 px-3 py-2.5 rounded-lg border border-[#2A2A2A] outline-none text-xs"
                                 >
-                                    {q}
-                                    {q === "4K" && (
-                                        <span className="ml-1 text-[9px] opacity-70">PRO</span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {model === "flash" && (
-                        <p className="text-[10px] text-gray-500 mt-1.5">
-                            Flash model generates at fixed 1024x1024 resolution
-                        </p>
-                    )}
-                </div>
+                                    {ASPECT_RATIOS.map((ratio) => (
+                                        <option key={ratio.value} value={ratio.value}>
+                                            {ratio.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                {/* Aspect Ratio */}
-                <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
-                        Aspect Ratio
-                    </label>
-                    <select
-                        value={aspectRatio}
-                        onChange={(e) => setAspectRatio(e.target.value)}
-                        disabled={isGenerating}
-                        className="w-full bg-[#1E1E1E] text-gray-300 px-3 py-2.5 rounded-lg border border-[#2A2A2A] outline-none text-xs"
-                    >
-                        {ASPECT_RATIOS.map((ratio) => (
-                            <option key={ratio.value} value={ratio.value}>
-                                {ratio.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                            {/* Credit Cost Display */}
+                            <div className="p-3 bg-[#1E1E1E] rounded-lg">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-400">Generation Cost</span>
+                                    <span className="text-xs font-semibold text-green-400">
+                                        {creditCost} credit{creditCost !== 1 ? "s" : ""}
+                                    </span>
+                                </div>
+                            </div>
 
-                {/* Credit Cost Display */}
-                <div className="p-3 bg-[#1E1E1E] rounded-lg">
-                    <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-400">Generation Cost</span>
-                        <span className="text-xs font-semibold text-green-400">
-                            {creditCost} credit{creditCost !== 1 ? "s" : ""}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Error Display */}
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
-                    >
-                        <p className="text-xs text-red-400">{error}</p>
-                    </motion.div>
-                )}
+                            {/* Error Display */}
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
+                                >
+                                    <p className="text-xs text-red-400">{error}</p>
+                                </motion.div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -326,11 +321,10 @@ export default function ImageGenerationPanel({
                     <button
                         onClick={handleGenerate}
                         disabled={isGenerating || !prompt.trim()}
-                        className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
-                            isGenerating || !prompt.trim()
-                                ? "bg-green-500/50 text-black/50 cursor-not-allowed"
-                                : "bg-green-500 text-black hover:bg-green-400"
-                        }`}
+                        className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating || !prompt.trim()
+                            ? "bg-green-500/50 text-black/50 cursor-not-allowed"
+                            : "bg-green-500 text-black hover:bg-green-400"
+                            }`}
                     >
                         {isGenerating ? (
                             <span className="flex items-center justify-center gap-2">

@@ -190,7 +190,7 @@ export default function Dashboard() {
       <div className="h-screen flex bg-[#0A0A0A] overflow-hidden">
         <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
 
-        {sidebarTab === "settings" ? (
+        {sidebarTab === "credits" ? (
           <>
             <div className="w-[370px] h-full overflow-y-auto bg-[#0A0A0A] border-r border-[#1A1A1A]">
               <CreditBalance />
