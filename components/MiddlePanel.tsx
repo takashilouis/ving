@@ -66,7 +66,7 @@ export default function MiddlePanel({
     };
 
     return (
-        <div className="w-[370px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col">
+        <div className="w-[370px] h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-[#1A1A1A]">
                 <div className="flex items-center gap-2">
