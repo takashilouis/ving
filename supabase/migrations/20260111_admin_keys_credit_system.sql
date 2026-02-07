@@ -188,12 +188,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4.2: Function to auto-create user credits on signup (10 free credits)
+-- 4.2: Function to auto-create user credits on signup (5 free credits)
 CREATE OR REPLACE FUNCTION public.handle_new_user_credits()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.user_credits (user_id, balance, total_earned)
-  VALUES (NEW.id, 10, 10);
+  VALUES (NEW.id, 5, 5);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const sidebarItems = [
     // {
@@ -40,39 +41,19 @@ const sidebarItems = [
         ),
         active: false
     },
-    {
-        id: "audio",
-        label: "Audio",
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
-            </svg>
-        ),
-        active: false
-    },
-    {
-        id: "tools",
-        label: "Tools",
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-            </svg>
-        ),
-        active: false
-    },
-    {
-        id: "settings",
-        label: "Settings",
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v6m0 6v6m5.196-13.196l-4.242 4.242m0 6.364l-4.242 4.242M23 12h-6m-6 0H1m18.196 5.196l-4.242-4.242m0-6.364l-4.242-4.242" />
-            </svg>
-        ),
-        active: false
-    },
+    // {
+    //     id: "audio",
+    //     label: "Audio",
+    //     icon: (
+    //         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    //             <path d="M9 18V5l12-2v13" />
+    //             <circle cx="6" cy="18" r="3" />
+    //             <circle cx="18" cy="16" r="3" />
+    //         </svg>
+    //     ),
+    //     active: false
+    // },   
+
 ];
 
 interface LeftSidebarProps {
@@ -81,6 +62,33 @@ interface LeftSidebarProps {
 }
 
 export default function LeftSidebar({ onTabChange, activeTab }: LeftSidebarProps) {
+    const { user } = useAuth();
+    const [credits, setCredits] = useState<number | null>(null);
+
+    useEffect(() => {
+        const loadCredits = async () => {
+            if (!user) {
+                setCredits(null);
+                return;
+            }
+
+            try {
+                const response = await fetch("/api/credits/balance");
+                const data = await response.json();
+                if (response.ok) {
+                    setCredits(data.balance);
+                }
+            } catch (error) {
+                console.error("Error loading credits:", error);
+            }
+        };
+
+        loadCredits();
+        // Reload credits every 30 seconds
+        const interval = setInterval(loadCredits, 30000);
+        return () => clearInterval(interval);
+    }, [user]);
+
     return (
         <div className="w-[60px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col items-center py-4 gap-2">
             {/* Vling Logo */}
@@ -109,6 +117,31 @@ export default function LeftSidebar({ onTabChange, activeTab }: LeftSidebarProps
                     )}
                 </motion.button>
             ))}
+
+            {/* Spacer to push credits to bottom */}
+            <div className="flex-1" />
+
+            {/* Credits Tab at Bottom */}
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onTabChange("credits")}
+                className={`relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${activeTab === "credits"
+                    ? "bg-green-500/10 text-green-400"
+                    : "text-gray-500 hover:text-gray-300 hover:bg-[#1E1E1E]"
+                    }`}
+                title="Credits"
+            >
+                <div className="flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold">
+                        {credits !== null ? credits : "--"}
+                    </span>
+                    <span className="text-[8px] text-gray-500">credits</span>
+                </div>
+                {activeTab === "credits" && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r" />
+                )}
+            </motion.button>
         </div>
     );
 }

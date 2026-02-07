@@ -81,7 +81,7 @@ export default function CreditBalance() {
           <div className="flex items-center gap-3">
             <span className="text-lg">💎</span>
             <div>
-              <p className="text-xs text-white font-medium">10 Free Credits</p>
+              <p className="text-xs text-white font-medium">5 Free Credits</p>
               <p className="text-xs text-gray-500">When you sign up</p>
             </div>
           </div>
@@ -224,6 +224,20 @@ export default function CreditBalance() {
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">Pro 3.0 (4K)</span>
               <span className="text-xs font-semibold text-green-400">3 credits</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-[#2A2A2A]">
+          <p className="text-[10px] text-gray-500 mb-2">Fusion Mode</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">Standard Quality</span>
+              <span className="text-xs font-semibold text-green-400">2 credits</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">Pro Quality (4K)</span>
+              <span className="text-xs font-semibold text-green-400">4 credits</span>
             </div>
           </div>
         </div>

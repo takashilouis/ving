@@ -13,12 +13,12 @@ export interface CreditCost {
 
 // Define credit costs for different operations
 export const CREDIT_COSTS: CreditCost = {
-  veo: 2,             // 1 credit per Veo video
+  veo: 1,             // 1 credit per Veo video
   kling: 2,           // 2 credits per Kling motion control video
   image_flash_1k: 1,  // 1 credit per Flash image
   image_pro_1k: 1,    // 1 credit per Pro 1K image
-  image_pro_2k: 1,    // 2 credits per Pro 2K image
-  image_pro_4k: 2,    // 3 credits per Pro 4K image
+  image_pro_2k: 2,    // 2 credits per Pro 2K image
+  image_pro_4k: 3,    // 3 credits per Pro 4K image
   image_fusion_standard: 2,  // 2 credits per fusion (Standard)
   image_fusion_4k: 4,        // 4 credits per fusion (4K)
 }
