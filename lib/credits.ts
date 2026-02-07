@@ -7,6 +7,8 @@ export interface CreditCost {
   image_pro_1k: number    // Cost per Gemini 3.0 Pro 1K image
   image_pro_2k: number    // Cost per Gemini 3.0 Pro 2K image
   image_pro_4k: number    // Cost per Gemini 3.0 Pro 4K image
+  image_fusion_standard: number  // Cost per fusion (Standard/Flash)
+  image_fusion_4k: number        // Cost per fusion (4K/Pro)
 }
 
 // Define credit costs for different operations
@@ -17,6 +19,8 @@ export const CREDIT_COSTS: CreditCost = {
   image_pro_1k: 1,    // 1 credit per Pro 1K image
   image_pro_2k: 2,    // 2 credits per Pro 2K image
   image_pro_4k: 3,    // 3 credits per Pro 4K image
+  image_fusion_standard: 2,  // 2 credits per fusion (Standard)
+  image_fusion_4k: 4,        // 4 credits per fusion (4K)
 }
 
 /**
@@ -28,6 +32,13 @@ export function getImageCreditCost(model: 'flash' | 'pro', quality: '1K' | '2K' 
   }
   const key = `image_pro_${quality.toLowerCase()}` as keyof CreditCost
   return CREDIT_COSTS[key]
+}
+
+/**
+ * Get credit cost for image fusion based on quality
+ */
+export function getFusionCreditCost(quality: 'standard' | 'pro'): number {
+  return quality === 'pro' ? CREDIT_COSTS.image_fusion_4k : CREDIT_COSTS.image_fusion_standard
 }
 
 /**
