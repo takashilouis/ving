@@ -12,6 +12,8 @@ export interface GeneratedVideo {
     prompt: string;
     duration: number;
     timestamp: number;
+    source?: string;  // 'veo' | 'kling'
+    aspectRatio?: string;
 }
 
 export interface ScriptClip {

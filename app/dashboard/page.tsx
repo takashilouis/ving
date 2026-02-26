@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
@@ -19,6 +19,8 @@ interface GeneratedVideo {
   prompt: string;
   duration: number;
   timestamp: number;
+  source?: string;
+  aspectRatio?: string;
 }
 
 interface ScriptClip {
@@ -53,6 +55,33 @@ export default function Dashboard() {
   const [fusionPrompt, setFusionPrompt] = useState("");
   const [fusionAspectRatio, setFusionAspectRatio] = useState("16:9");
   const [fusionQuality, setFusionQuality] = useState<FusionQuality>("standard");
+
+  // Load history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user) return;
+
+      try {
+        // Load image history
+        const imageRes = await fetch("/api/history/images");
+        if (imageRes.ok) {
+          const { images } = await imageRes.json();
+          setImageHistory(images || []);
+        }
+
+        // Load video history
+        const videoRes = await fetch("/api/history/videos");
+        if (videoRes.ok) {
+          const { videos } = await videoRes.json();
+          setVideoHistory(videos || []);
+        }
+      } catch (error) {
+        console.error("Failed to load history:", error);
+      }
+    };
+
+    loadHistory();
+  }, [user]);
 
   //const handlePresetSelect = (preset: Preset) => {
   //  setPrompt(preset.prompt);
@@ -178,11 +207,45 @@ export default function Dashboard() {
   // Image generation handlers
   const handleImageGenerated = (image: GeneratedImage) => {
     setCurrentImage(image);
-    setImageHistory((prev) => [image, ...prev].slice(0, 20));
+    setImageHistory((prev) => [image, ...prev].slice(0, 50));
   };
 
   const handleSelectHistoryImage = (image: GeneratedImage) => {
     setCurrentImage(image);
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    try {
+      const res = await fetch(`/api/history/images?id=${imageId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setImageHistory((prev) => prev.filter((img) => img.id !== imageId));
+        if (currentImage?.id === imageId) {
+          setCurrentImage(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+    }
+  };
+
+  const handleDeleteVideo = async (videoId: string) => {
+    try {
+      const res = await fetch(`/api/history/videos?id=${videoId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setVideoHistory((prev) => prev.filter((vid) => vid.id !== videoId));
+        if (currentVideo?.id === videoId) {
+          setCurrentVideo(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete video:", error);
+    }
   };
 
   return (
@@ -217,6 +280,7 @@ export default function Dashboard() {
               progress={imageProgress}
               imageHistory={imageHistory}
               onSelectImage={handleSelectHistoryImage}
+              onDeleteImage={handleDeleteImage}
             />
           </>
         ) : (
@@ -242,6 +306,7 @@ export default function Dashboard() {
               progress={progress}
               videoHistory={videoHistory}
               onSelectVideo={handleSelectHistoryVideo}
+              onDeleteVideo={handleDeleteVideo}
             />
           </>
         )}
