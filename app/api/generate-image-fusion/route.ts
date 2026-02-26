@@ -216,6 +216,23 @@ Create a natural, professional composition at ${aspectRatio} aspect ratio. Seaml
             // Create data URL
             const imageDataUrl = `data:${mimeType};base64,${imageBase64}`;
 
+            // Upload to R2 for persistent storage
+            let r2Url = imageDataUrl;
+            let r2Key: string | null = null;
+
+            try {
+                const { uploadToR2, generateR2Filename } = await import("@/lib/r2-storage");
+                const imageBuffer = Buffer.from(imageBase64, "base64");
+                const extension = mimeType === "image/jpeg" ? "jpg" : "png";
+                const filename = generateR2Filename("fusion", extension);
+
+                const { url, key } = await uploadToR2(imageBuffer, filename, mimeType);
+                r2Url = url;
+                r2Key = key;
+            } catch (r2Error) {
+                console.error("R2 upload failed, using data URL:", r2Error);
+            }
+
             // Deduct credits after successful generation
             await deductCredits(user.id, requiredCredits, "image_fusion", {
                 sourceImageCount: images.length,
@@ -224,12 +241,27 @@ Create a natural, professional composition at ${aspectRatio} aspect ratio. Seaml
                 prompt: prompt || null,
             });
 
+            // Save to database for history
+            try {
+                await supabase.from("generated_images").insert({
+                    user_id: user.id,
+                    url: r2Url,
+                    prompt: prompt || `Fusion of ${images.length} images`,
+                    model: "pro", // Fusion uses pro
+                    quality: quality === "pro" ? "4K" : "2K",
+                    aspect_ratio: aspectRatio,
+                    r2_key: r2Key,
+                });
+            } catch (dbError) {
+                console.error("Failed to save fusion image to database:", dbError);
+            }
+
             // Get updated balance
             const { balance: newBalance } = await checkCredits(user.id, 0);
 
             return NextResponse.json({
                 success: true,
-                imageUrl: imageDataUrl,
+                imageUrl: r2Url,
                 prompt: prompt || `Fusion of ${images.length} images`,
                 quality: quality,
                 aspectRatio: aspectRatio,
