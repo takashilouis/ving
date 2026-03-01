@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 interface GeneratedVideo {
@@ -16,6 +17,7 @@ interface VideoPreviewProps {
     progress: string;
     videoHistory?: GeneratedVideo[];
     onSelectVideo?: (video: GeneratedVideo) => void;
+    onDeleteVideo?: (videoId: string) => void;
 }
 
 export default function VideoPreview({
@@ -24,41 +26,44 @@ export default function VideoPreview({
     progress,
     videoHistory = [],
     onSelectVideo,
+    onDeleteVideo,
 }: VideoPreviewProps) {
-    const downloadVideo = () => {
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+    const downloadVideo = async () => {
         if (!video) return;
 
-        // Check if it's an external URL (Kling, etc.) - open in new tab
-        const isExternalUrl = video.url.startsWith('http') && !video.url.includes(window.location.hostname);
+        setIsDownloading(true);
+        try {
+            const filename = `ving-video-${Date.now()}.mp4`;
+            const downloadUrl = `/api/download?url=${encodeURIComponent(video.url)}&filename=${filename}`;
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
 
-        if (isExternalUrl) {
-            // Open external video URLs in new tab
-            window.open(video.url, "_blank", "noopener,noreferrer");
-        } else {
-            // Download local/blob URLs directly
-            try {
-                const a = document.createElement("a");
-                a.href = video.url;
-                a.download = `vling-video-${Date.now()}.mp4`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } catch (error) {
-                console.error("Download failed:", error);
-                window.open(video.url, "_blank");
-            }
+            // Artificial delay to show downloading state for a moment
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+            console.error("Download failed:", error);
+            window.open(video.url, "_blank");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
     const formatTime = (timestamp: number) => {
         const date = new Date(timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
     return (
-        <div className="flex-1 h-full bg-[#0A0A0A] flex flex-col overflow-y-auto">
+        <div className="flex-1 h-full bg-[#0A0A0A] flex flex-col min-h-0">
             {/* Top Bar */}
-            <div className="border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
+            <div className="flex-shrink-0 border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
                 <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
                     Motion Video
                 </span>
@@ -86,16 +91,15 @@ export default function VideoPreview({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Video Area */}
-                <div className="flex-1 flex items-center justify-center p-6">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Video Area - scrollable, shrinks to make room for gallery */}
+                <div className="flex-1 flex items-center justify-center p-6 min-h-0 overflow-y-auto">
                     {isGenerating ? (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="text-center relative"
                         >
-                            {/* Beautiful particle animation */}
                             <div className="relative w-32 h-32 mx-auto mb-8">
                                 <motion.div
                                     animate={{ rotate: 360 }}
@@ -110,7 +114,7 @@ export default function VideoPreview({
                                 <motion.div
                                     animate={{
                                         scale: [1, 1.2, 1],
-                                        opacity: [0.5, 1, 0.5]
+                                        opacity: [0.5, 1, 0.5],
                                     }}
                                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                                     className="absolute inset-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
@@ -129,7 +133,7 @@ export default function VideoPreview({
                                     >
                                         <div
                                             className="absolute w-2 h-2 bg-green-400 rounded-full"
-                                            style={{ top: '50%', left: '100%', transform: 'translate(-50%, -50%)' }}
+                                            style={{ top: "50%", left: "100%", transform: "translate(-50%, -50%)" }}
                                         />
                                     </motion.div>
                                 ))}
@@ -141,9 +145,7 @@ export default function VideoPreview({
                             >
                                 {progress}
                             </motion.p>
-                            <p className="text-sm text-gray-500">
-                                Creating your masterpiece...
-                            </p>
+                            <p className="text-sm text-gray-500">Creating your masterpiece...</p>
                         </motion.div>
                     ) : video ? (
                         <motion.div
@@ -154,14 +156,23 @@ export default function VideoPreview({
                             <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl">
                                 <button
                                     onClick={downloadVideo}
-                                    className="absolute top-4 right-4 z-10 p-3 bg-black/70 hover:bg-black/90 rounded-lg transition-all hover:scale-110"
+                                    disabled={isDownloading}
+                                    className="absolute top-4 right-4 z-10 p-3 bg-black/70 hover:bg-black/90 rounded-lg transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-wait"
                                     title="Download Video"
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="7 10 12 15 17 10" />
-                                        <line x1="12" y1="15" x2="12" y2="3" />
-                                    </svg>
+                                    {isDownloading ? (
+                                        <motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                            className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                                        />
+                                    ) : (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" y1="15" x2="12" y2="3" />
+                                        </svg>
+                                    )}
                                 </button>
                                 <video
                                     src={video.url}
@@ -174,9 +185,7 @@ export default function VideoPreview({
                                 />
                             </div>
                             <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg">
-                                <p className="text-xs text-gray-400 line-clamp-2">
-                                    {video.prompt}
-                                </p>
+                                <p className="text-xs text-gray-400 line-clamp-2">{video.prompt}</p>
                             </div>
                         </motion.div>
                     ) : (
@@ -187,9 +196,7 @@ export default function VideoPreview({
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-200 mb-2">
-                                No video generated yet
-                            </h3>
+                            <h3 className="text-lg font-semibold text-gray-200 mb-2">No video generated yet</h3>
                             <p className="text-sm text-gray-500">
                                 Enter a prompt and click Generate to create your video
                             </p>
@@ -197,38 +204,61 @@ export default function VideoPreview({
                     )}
                 </div>
 
-                {/* Video History Gallery */}
+                {/* Video History Gallery - flex-shrink-0 so it's never clipped */}
                 {videoHistory.length > 0 && (
-                    <div className="border-t border-[#1A1A1A] p-4">
+                    <div className="flex-shrink-0 border-t border-[#1A1A1A] p-4">
                         <h4 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
                             Recent Videos ({videoHistory.length})
                         </h4>
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {videoHistory.map((historyVideo) => (
-                                <motion.button
+                                <div
                                     key={historyVideo.id}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => onSelectVideo?.(historyVideo)}
-                                    className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${video?.id === historyVideo.id
-                                        ? "border-green-500"
-                                        : "border-transparent hover:border-gray-600"
-                                        }`}
+                                    className="relative flex-shrink-0 w-32"
+                                    onMouseEnter={() => setHoveredId(historyVideo.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
                                 >
-                                    <div className="relative">
-                                        <video
-                                            src={historyVideo.url}
-                                            className="w-full aspect-video object-cover"
-                                            muted
-                                            playsInline
-                                        />
-                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                            <span className="text-[10px] text-gray-300">
-                                                {historyVideo.duration}s • {formatTime(historyVideo.timestamp)}
-                                            </span>
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => onSelectVideo?.(historyVideo)}
+                                        className={`w-full rounded-lg overflow-hidden border-2 transition-all ${video?.id === historyVideo.id
+                                                ? "border-green-500"
+                                                : "border-transparent hover:border-gray-600"
+                                            }`}
+                                    >
+                                        <div className="relative">
+                                            <video
+                                                src={historyVideo.url}
+                                                className="w-full aspect-video object-cover"
+                                                muted
+                                                playsInline
+                                            />
+                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                                <span className="text-[10px] text-gray-300">
+                                                    {historyVideo.duration}s • {formatTime(historyVideo.timestamp)}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </motion.button>
+                                    </motion.button>
+
+                                    {/* Delete button - shown on hover */}
+                                    {hoveredId === historyVideo.id && onDeleteVideo && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteVideo(historyVideo.id);
+                                            }}
+                                            className="absolute top-1 right-1 z-10 p-1 bg-black/80 hover:bg-red-600 rounded transition-colors"
+                                            title="Delete video"
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -237,7 +267,7 @@ export default function VideoPreview({
 
             {/* Bottom Controls */}
             {video && !isGenerating && (
-                <div className="border-t border-[#1A1A1A] px-6 py-3 flex items-center justify-between bg-[#0A0A0A]">
+                <div className="flex-shrink-0 border-t border-[#1A1A1A] px-6 py-3 flex items-center bg-[#0A0A0A]">
                     <div className="flex items-center gap-4">
                         <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -249,13 +279,6 @@ export default function VideoPreview({
                                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                             </svg>
                             Lip Sync
-                        </button>
-                        <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                            </svg>
-                            AI Sound
                         </button>
                     </div>
                 </div>

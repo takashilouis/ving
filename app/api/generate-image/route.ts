@@ -106,12 +106,19 @@ export async function POST(request: NextRequest) {
                 .select("encrypted_key")
                 .eq("key_type", "gemini")
                 .eq("is_active", true)
-                .single();
+                .maybeSingle();
 
-            if (keyError || !keyData) {
-                console.error("Failed to fetch admin API key:", keyError);
+            if (keyError) {
+                console.error("Error fetching admin API key:", keyError);
                 return NextResponse.json(
                     { error: "Service temporarily unavailable. Please try again later." },
+                    { status: 503 }
+                );
+            }
+
+            if (!keyData) {
+                return NextResponse.json(
+                    { error: "Gemini API key is not configured. Please ask an admin to configure it in the Settings." },
                     { status: 503 }
                 );
             }
@@ -183,6 +190,23 @@ export async function POST(request: NextRequest) {
             // Create data URL
             const imageDataUrl = `data:${mimeType};base64,${imageBase64}`;
 
+            // Upload to R2 for persistent storage
+            let r2Url = imageDataUrl; // Fallback to data URL
+            let r2Key: string | null = null;
+
+            try {
+                const { uploadToR2, generateR2Filename } = await import("@/lib/r2-storage");
+                const imageBuffer = Buffer.from(imageBase64, "base64");
+                const extension = mimeType === "image/jpeg" ? "jpg" : "png";
+                const filename = generateR2Filename("images", extension);
+
+                const { url, key } = await uploadToR2(imageBuffer, filename, mimeType);
+                r2Url = url;
+                r2Key = key;
+            } catch (r2Error) {
+                console.error("R2 upload failed, using data URL:", r2Error);
+            }
+
             // Deduct credits after successful generation
             await deductCredits(user.id, requiredCredits, "image_generation", {
                 prompt: prompt,
@@ -191,12 +215,28 @@ export async function POST(request: NextRequest) {
                 aspectRatio: aspectRatio,
             });
 
+            // Save to database for history
+            try {
+                await supabase.from("generated_images").insert({
+                    user_id: user.id,
+                    url: r2Url,
+                    prompt: prompt,
+                    model: model,
+                    quality: quality,
+                    aspect_ratio: aspectRatio,
+                    r2_key: r2Key,
+                });
+            } catch (dbError) {
+                console.error("Failed to save image to database:", dbError);
+                // Continue anyway - don't fail the request
+            }
+
             // Get updated balance
             const { balance: newBalance } = await checkCredits(user.id, 0);
 
             return NextResponse.json({
                 success: true,
-                imageUrl: imageDataUrl,
+                imageUrl: r2Url,
                 prompt: prompt,
                 model: model,
                 quality: quality,

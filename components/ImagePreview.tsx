@@ -10,6 +10,7 @@ interface ImagePreviewProps {
     progress: string;
     imageHistory?: GeneratedImage[];
     onSelectImage?: (image: GeneratedImage) => void;
+    onDeleteImage?: (imageId: string) => void;
 }
 
 export default function ImagePreview({
@@ -18,8 +19,10 @@ export default function ImagePreview({
     progress,
     imageHistory = [],
     onSelectImage,
+    onDeleteImage,
 }: ImagePreviewProps) {
     const [copied, setCopied] = useState(false);
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     const copyPrompt = async () => {
         if (!image?.prompt) return;
@@ -36,9 +39,11 @@ export default function ImagePreview({
         if (!image) return;
 
         try {
+            const filename = `ving-image-${Date.now()}.png`;
+            const downloadUrl = `/api/download?url=${encodeURIComponent(image.url)}&filename=${filename}`;
             const a = document.createElement("a");
-            a.href = image.url;
-            a.download = `ving-image-${Date.now()}.png`;
+            a.href = downloadUrl;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -275,30 +280,52 @@ export default function ImagePreview({
                         </h4>
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {imageHistory.map((historyImage) => (
-                                <motion.button
+                                <div
                                     key={historyImage.id}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => onSelectImage?.(historyImage)}
-                                    className={`flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border-2 transition-all ${
-                                        image?.id === historyImage.id
+                                    className="relative flex-shrink-0 w-24 h-24"
+                                    onMouseEnter={() => setHoveredId(historyImage.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                >
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => onSelectImage?.(historyImage)}
+                                        className={`w-full h-full rounded-lg overflow-hidden border-2 transition-all ${image?.id === historyImage.id
                                             ? "border-green-500"
                                             : "border-transparent hover:border-gray-600"
-                                    }`}
-                                >
-                                    <div className="relative w-full h-full">
-                                        <img
-                                            src={historyImage.url}
-                                            alt={historyImage.prompt}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                                            <span className="text-[9px] text-gray-300">
-                                                {historyImage.quality} • {formatTime(historyImage.timestamp)}
-                                            </span>
+                                            }`}
+                                    >
+                                        <div className="relative w-full h-full">
+                                            <img
+                                                src={historyImage.url}
+                                                alt={historyImage.prompt}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                                                <span className="text-[9px] text-gray-300">
+                                                    {historyImage.quality} • {formatTime(historyImage.timestamp)}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </motion.button>
+                                    </motion.button>
+
+                                    {/* Delete button - shown on hover */}
+                                    {hoveredId === historyImage.id && onDeleteImage && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteImage(historyImage.id);
+                                            }}
+                                            className="absolute top-1 right-1 z-10 p-1 bg-black/80 hover:bg-red-600 rounded transition-colors"
+                                            title="Delete image"
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
