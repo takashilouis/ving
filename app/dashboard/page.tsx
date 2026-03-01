@@ -102,7 +102,7 @@ export default function Dashboard() {
     setProgress("Starting video generation...");
 
     try {
-      const response = await fetch("/api/generate", withCsrfToken(csrfToken, {
+      const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function Dashboard() {
     setProgress(`Generating clip...`);
 
     try {
-      const response = await fetch("/api/generate", withCsrfToken(csrfToken, {
+      const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
