@@ -79,19 +79,26 @@ export async function POST(request: NextRequest) {
                 .select("encrypted_key")
                 .eq("key_type", "kling_access")
                 .eq("is_active", true)
-                .single();
+                .maybeSingle();
 
             const { data: secretKeyData, error: secretKeyError } = await adminSupabase
                 .from("admin_api_keys")
                 .select("encrypted_key")
                 .eq("key_type", "kling_secret")
                 .eq("is_active", true)
-                .single();
+                .maybeSingle();
 
-            if (accessKeyError || secretKeyError || !accessKeyData || !secretKeyData) {
-                console.error("Failed to fetch admin Kling keys:", { accessKeyError, secretKeyError });
+            if (accessKeyError || secretKeyError) {
+                console.error("Error fetching admin Kling keys:", { accessKeyError, secretKeyError });
                 return NextResponse.json(
                     { error: "Service temporarily unavailable. Please try again later." },
+                    { status: 503 }
+                );
+            }
+
+            if (!accessKeyData || !secretKeyData) {
+                return NextResponse.json(
+                    { error: "Kling API keys are not configured. Please ask an admin to configure them in the Settings." },
                     { status: 503 }
                 );
             }

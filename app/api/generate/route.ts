@@ -75,12 +75,19 @@ export async function POST(request: NextRequest) {
                 .select("encrypted_key")
                 .eq("key_type", "gemini")
                 .eq("is_active", true)
-                .single();
+                .maybeSingle();
 
-            if (keyError || !keyData) {
-                console.error("Failed to fetch admin API key:", keyError);
+            if (keyError) {
+                console.error("Error fetching admin API key:", keyError);
                 return NextResponse.json(
                     { error: "Service temporarily unavailable. Please try again later." },
+                    { status: 503 }
+                );
+            }
+
+            if (!keyData) {
+                return NextResponse.json(
+                    { error: "Gemini API key is not configured. Please ask an admin to configure it in the Settings." },
                     { status: 503 }
                 );
             }
