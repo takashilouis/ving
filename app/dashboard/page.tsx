@@ -88,10 +88,57 @@ export default function Dashboard() {
   //  setError(null);
   //};
 
+  // Shared polling logic for Vertex AI async generation.
+  // Calls /api/generate-veo-video/poll every 15s until the video is ready.
+  const pollForVideo = async (
+    operationName: string,
+    videoPrompt: string,
+    videoDuration: number,
+    videoAspectRatio: string
+  ): Promise<GeneratedVideo> => {
+    const POLL_INTERVAL = 15000;
+    const MAX_WAIT_MS = 15 * 60 * 1000; // 15 minutes
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < MAX_WAIT_MS) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      setProgress(`Generating with Veo 3.1... ${mins}m ${secs}s`);
+
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+
+      const pollRes = await fetch("/api/generate-veo-video/poll", withCsrfToken(csrfToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operationName,
+          prompt: videoPrompt,
+          duration: videoDuration,
+          aspectRatio: videoAspectRatio,
+        }),
+      }));
+
+      const pollData = await pollRes.json();
+      if (!pollRes.ok) throw new Error(pollData.error || "Failed to check video status");
+
+      if (pollData.done) {
+        return {
+          id: `video-${Date.now()}`,
+          url: pollData.videoUrl,
+          prompt: pollData.prompt,
+          duration: pollData.duration,
+          timestamp: Date.now(),
+        };
+      }
+    }
+
+    throw new Error("Video generation timed out after 15 minutes. Please try again.");
+  };
+
   const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6) => {
     if (!prompt.trim()) return;
 
-    // Check if user is authenticated
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -105,27 +152,27 @@ export default function Dashboard() {
       const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          duration,
-          aspectRatio,
-        }),
+        body: JSON.stringify({ prompt: prompt.trim(), duration, aspectRatio }),
       }));
 
-      setProgress("Processing with Veo 3.1...");
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to generate video");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate video");
+      let newVideo: GeneratedVideo;
+
+      if (data.async) {
+        // Vertex AI: poll client-side
+        newVideo = await pollForVideo(data.operationName, data.prompt, data.duration, data.aspectRatio);
+      } else {
+        // Gemini: video returned directly
+        newVideo = {
+          id: `video-${Date.now()}`,
+          url: data.videoUrl,
+          prompt: data.prompt,
+          duration: data.duration,
+          timestamp: Date.now(),
+        };
       }
-
-      const newVideo: GeneratedVideo = {
-        id: `video-${Date.now()}`,
-        url: data.videoUrl,
-        prompt: data.prompt,
-        duration: data.duration,
-        timestamp: Date.now(),
-      };
 
       setCurrentVideo(newVideo);
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
@@ -141,7 +188,6 @@ export default function Dashboard() {
   const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string) => {
     if (!clipPrompt.trim()) return;
 
-    // Check if user is authenticated
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -149,33 +195,33 @@ export default function Dashboard() {
 
     setIsGenerating(true);
     setError(null);
-    setProgress(`Generating clip...`);
+    setProgress("Starting clip generation...");
+
+    const clampedDuration = Math.min(Math.max(clipDuration, 4), 8);
 
     try {
       const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: clipPrompt.trim(),
-          duration: Math.min(Math.max(clipDuration, 4), 8),
-          aspectRatio,
-        }),
+        body: JSON.stringify({ prompt: clipPrompt.trim(), duration: clampedDuration, aspectRatio }),
       }));
 
-      setProgress("Processing with Veo 3.1...");
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to generate video");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate video");
+      let newVideo: GeneratedVideo;
+
+      if (data.async) {
+        newVideo = await pollForVideo(data.operationName, data.prompt, data.duration, data.aspectRatio);
+      } else {
+        newVideo = {
+          id: `video-${Date.now()}`,
+          url: data.videoUrl,
+          prompt: clipPrompt,
+          duration: clipDuration,
+          timestamp: Date.now(),
+        };
       }
-
-      const newVideo: GeneratedVideo = {
-        id: `video-${Date.now()}`,
-        url: data.videoUrl,
-        prompt: clipPrompt,
-        duration: clipDuration,
-        timestamp: Date.now(),
-      };
 
       setCurrentVideo(newVideo);
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));

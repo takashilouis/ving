@@ -27,11 +27,13 @@ export function setCsrfCookies(secret: string, token: string): {
   secretCookie: string;
   tokenCookie: string;
 } {
+  const secure = process.env.NODE_ENV === 'production' ? 'Secure; ' : '';
+
   // Secret cookie (httpOnly, not accessible to JavaScript)
-  const secretCookie = `${CSRF_SECRET_COOKIE}=${secret}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`;
+  const secretCookie = `${CSRF_SECRET_COOKIE}=${secret}; Path=/; HttpOnly; ${secure}SameSite=Strict; Max-Age=86400`;
 
   // Token cookie (readable by JavaScript for inclusion in requests)
-  const tokenCookie = `${CSRF_TOKEN_COOKIE}=${token}; Path=/; Secure; SameSite=Strict; Max-Age=86400`;
+  const tokenCookie = `${CSRF_TOKEN_COOKIE}=${token}; Path=/; ${secure}SameSite=Strict; Max-Age=86400`;
 
   return { secretCookie, tokenCookie };
 }

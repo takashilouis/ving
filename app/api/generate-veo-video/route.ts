@@ -7,14 +7,13 @@ import { decryptApiKey } from "@/lib/supabase/encryption";
 import { withCsrfProtection } from "@/lib/csrf";
 import { uploadToR2, generateR2Filename } from "@/lib/r2-storage";
 
-export const maxDuration = 300;
+export const maxDuration = 60; // Only needs to start the operation, not wait for it
 
 // Switch provider via env var: "gemini" (default) or "vertex"
 const VEO_PROVIDER = process.env.VEO_PROVIDER || "gemini";
 
 // --- Gemini AI Studio path ---
-// Uses admin-managed API key stored encrypted in the DB.
-// Model: veo-3.1-fast-generate-preview (Google AI Studio preview)
+// Gemini uses internal polling (generation is fast enough) and returns a Buffer directly.
 async function generateWithGemini(
     prompt: string,
     duration: number,
@@ -61,33 +60,28 @@ async function generateWithGemini(
     return Buffer.from(await videoResponse.arrayBuffer());
 }
 
-// --- Vertex AI path ---
-// Uses a plain API key (created in Google Cloud Console → APIs & Services → Credentials).
-// Set env vars: VERTEX_PROJECT, VERTEX_API_KEY, and optionally VERTEX_LOCATION.
-// Model: veo-3.1-fast-generate-001 (Vertex AI stable release)
-async function generateWithVertex(
+// --- Vertex AI path (start only — no polling) ---
+// Vertex AI Express API keys (AQ. prefix) require the global endpoint with v1beta1.
+// Polling is done client-side via /api/generate-veo-video/poll.
+async function startVertexGeneration(
     prompt: string,
     duration: number,
     aspectRatio: string
-): Promise<Buffer> {
-    const project = process.env.VERTEX_PROJECT;
-    const location = process.env.VERTEX_LOCATION || "us-central1";
+): Promise<string> {
     const apiKey = process.env.VERTEX_API_KEY;
-
-    if (!project) throw new Error("VERTEX_PROJECT environment variable is not set.");
     if (!apiKey) throw new Error("VERTEX_API_KEY environment variable is not set.");
 
+    const project = process.env.VERTEX_PROJECT;
+    const location = process.env.VERTEX_LOCATION || "us-central1";
+    if (!project) throw new Error("VERTEX_PROJECT environment variable is not set.");
+
     const model = "veo-3.1-fast-generate-001";
-    const baseUrl = `https://${location}-aiplatform.googleapis.com/v1`;
+    const baseUrl = `https://${location}-aiplatform.googleapis.com/v1beta1`;
     const endpoint = `${baseUrl}/projects/${project}/locations/${location}/publishers/google/models/${model}`;
 
-    // Start long-running generation
-    const generateResponse = await fetch(`${endpoint}:predictLongRunning`, {
+    const generateResponse = await fetch(`${endpoint}:predictLongRunning?key=${apiKey}`, {
         method: "POST",
-        headers: {
-            "x-goog-api-key": apiKey,
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             instances: [{ prompt }],
             parameters: {
@@ -104,36 +98,11 @@ async function generateWithVertex(
         throw new Error(`Vertex AI request failed (${generateResponse.status}): ${errBody}`);
     }
 
-    const { name: operationName } = await generateResponse.json();
+    const generateData = await generateResponse.json();
+    const operationName: string | undefined = generateData.name;
     if (!operationName) throw new Error("No operation name returned from Vertex AI.");
 
-    // Poll every 15s (max 40 attempts ≈ 10 min)
-    const maxAttempts = 40;
-    let attempts = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let operationResult: any = null;
-
-    while (attempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 15000));
-        const pollResponse = await fetch(`${baseUrl}/${operationName}`, {
-            headers: { "x-goog-api-key": apiKey },
-        });
-        if (pollResponse.ok) {
-            operationResult = await pollResponse.json();
-            if (operationResult.done) break;
-        }
-        attempts++;
-    }
-
-    if (!operationResult?.done) throw new Error("Video generation timed out. Please try again.");
-    if (operationResult.error) throw new Error(operationResult.error.message || "Vertex AI generation failed.");
-
-    const videoBase64: string | undefined =
-        operationResult.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.bytesBase64Encoded;
-
-    if (!videoBase64) throw new Error("No video was generated. The prompt may have been filtered by safety settings.");
-
-    return Buffer.from(videoBase64, "base64");
+    return operationName;
 }
 
 // --- Main handler ---
@@ -155,7 +124,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
             }
 
-            // Check credits
+            // Check credits upfront
             const requiredCredits = CREDIT_COSTS.veo;
             const { hasEnough, balance } = await checkCredits(user.id, requiredCredits);
 
@@ -170,10 +139,24 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            // Generate video — delegate to the configured provider
-            const videoBuffer = VEO_PROVIDER === "vertex"
-                ? await generateWithVertex(prompt, duration || 6, aspectRatio)
-                : await generateWithGemini(prompt, duration || 6, aspectRatio);
+            // --- Vertex: async (start job, client polls) ---
+            if (VEO_PROVIDER === "vertex") {
+                const operationName = await startVertexGeneration(
+                    prompt,
+                    duration || 6,
+                    aspectRatio
+                );
+                return NextResponse.json({
+                    async: true,
+                    operationName,
+                    prompt,
+                    duration: duration || 6,
+                    aspectRatio,
+                });
+            }
+
+            // --- Gemini: sync (poll server-side, return video directly) ---
+            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio);
 
             // Upload to R2
             let r2Url = "";
@@ -189,15 +172,13 @@ export async function POST(request: NextRequest) {
                 r2Url = `data:video/mp4;base64,${videoBuffer.toString("base64")}`;
             }
 
-            // Deduct credits after successful generation
             await deductCredits(user.id, requiredCredits, "veo_generation", {
                 prompt,
                 duration,
                 aspectRatio,
-                provider: VEO_PROVIDER,
+                provider: "gemini",
             });
 
-            // Save to DB for history
             try {
                 await supabase.from("generated_videos").insert({
                     user_id: user.id,
@@ -234,9 +215,6 @@ export async function POST(request: NextRequest) {
                     { error: "Content was blocked by safety filters. Please modify your prompt." },
                     { status: 400 }
                 );
-            }
-            if (errorMessage.includes("timed out")) {
-                return NextResponse.json({ error: errorMessage }, { status: 504 });
             }
 
             return NextResponse.json({ error: `Video generation failed: ${errorMessage}` }, { status: 500 });
