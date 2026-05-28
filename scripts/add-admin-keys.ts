@@ -52,16 +52,23 @@ async function addKey(type: string, key: string) {
 async function main() {
     const accessKey = process.env.KLING_ACCESS_KEY;
     const secretKey = process.env.KLING_SECRET_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
 
-    if (!accessKey || !secretKey) {
-        console.error('❌ Please add KLING_ACCESS_KEY and KLING_SECRET_KEY to your .env file before running this script.');
-        process.exit(1);
+    if (geminiKey) {
+        console.log('Encrypting and uploading Gemini API key...');
+        await addKey('gemini', geminiKey);
     }
 
-    console.log('Encrypting and uploading Kling API keys...');
+    if (accessKey && secretKey) {
+        console.log('Encrypting and uploading Kling API keys...');
+        await addKey('kling_access', accessKey);
+        await addKey('kling_secret', secretKey);
+    }
 
-    await addKey('kling_access', accessKey);
-    await addKey('kling_secret', secretKey);
+    if (!geminiKey && !accessKey && !secretKey) {
+        console.error('❌ No keys found. Add GEMINI_API_KEY, or KLING_ACCESS_KEY + KLING_SECRET_KEY to your .env file.');
+        process.exit(1);
+    }
 
     console.log('Done!');
 }
