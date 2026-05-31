@@ -18,8 +18,8 @@ interface ScriptClip {
 interface MiddlePanelProps {
     //onPresetSelect: (preset: Preset) => void;
     onPromptChange: (prompt: string) => void;
-    onGenerate: (aspectRatio: string, duration: number) => void;
-    onGenerateClip: (prompt: string, duration: number, aspectRatio: string) => void;
+    onGenerate: (aspectRatio: string, duration: number, resolution: "720p" | "1080p" | "4k") => void;
+    onGenerateClip: (prompt: string, duration: number, aspectRatio: string, resolution: "720p" | "1080p" | "4k") => void;
     onMotionVideoGenerated: (videoUrl: string, prompt: string) => void;
     prompt: string;
     isGenerating: boolean;
@@ -53,6 +53,7 @@ export default function MiddlePanel({
     const [aspectRatio, setAspectRatio] = useState("16:9");
     const [duration, setDuration] = useState(6);
     const [activePresetCategory, setActivePresetCategory] = useState(categoryPresets[0].category);
+    const [resolution, setResolution] = useState<"720p" | "1080p" | "4k">("720p");
 
     const currentPresets = categoryPresets.find(c => c.category === activePresetCategory)?.presets || [];
 
@@ -66,41 +67,25 @@ export default function MiddlePanel({
     };
 
     return (
-        <div className="w-[370px] h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col overflow-hidden">
+        <div className="w-[370px] shrink-0 h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-[#1A1A1A]">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-bold text-white">AI Video Generator</h1>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${selectedModel === "veo"
-                        ? "bg-purple-500/20 text-purple-400"
-                        : "bg-blue-500/20 text-blue-400"
-                        }`}>
-                        {selectedModel === "veo" ? "VEO 3.1" : "KLING 2.6"}
-                    </span>
-                    <select
-                        value={selectedModel}
-                        onChange={(e) => onModelChange(e.target.value as "veo" | "kling")}
-                        className="ml-auto bg-[#1E1E1E] text-gray-300 text-xs px-2 py-1 rounded border border-[#2A2A2A] outline-none"
-                    >
-                        <option value="veo">Veo 3.1 Fast</option>
-                        <option value="kling">Kling 2.6</option>
-                    </select>
-                </div>
+                <h1 className="text-sm font-bold text-white">AI Video Generator</h1>
             </div>
 
             {/* Sub-Tabs */}
             <div className="border-b border-[#1A1A1A]">
-                <div className="flex">
+                <div className="flex divide-x divide-[#1A1A1A]">
                     {[
-                        { id: "text-to-video", label: "Text to Video" },
-                        { id: "image-to-video", label: "Image to Video" },
+                        { id: "text-to-video", label: "Text" },
+                        { id: "image-to-video", label: "Image" },
                         { id: "motion-control", label: "Motion" },
                         { id: "script", label: "Script" },
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as SubTab)}
-                            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${activeTab === tab.id
+                            className={`flex-1 py-2.5 text-xs font-medium text-center whitespace-nowrap transition-colors ${activeTab === tab.id
                                 ? "text-white border-b-2 border-green-500"
                                 : "text-gray-500 hover:text-gray-300"
                                 }`}
@@ -238,8 +223,8 @@ export default function MiddlePanel({
                                 onIdeaChange={onScriptIdeaChange}
                                 clips={scriptClips}
                                 onClipsChange={onScriptClipsChange}
-                                onGenerateClip={(clipPrompt, clipDuration) => {
-                                    onGenerateClip(clipPrompt, clipDuration, aspectRatio);
+                                onGenerateClip={(clipPrompt, clipDuration, clipResolution) => {
+                                    onGenerateClip(clipPrompt, clipDuration, aspectRatio, clipResolution);
                                 }}
                                 csrfToken={csrfToken}
                             />
@@ -251,19 +236,26 @@ export default function MiddlePanel({
             {/* Bottom Controls - Only show for text-to-video */}
             {activeTab === "text-to-video" && (
                 <div className="p-4 border-t border-[#1A1A1A] space-y-3">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">Native Audio</span>
-                        <div className="w-10 h-5 bg-green-500 rounded-full relative cursor-pointer">
-                            <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full" />
-                        </div>
-                    </div>
-
                     <div className="flex items-center gap-2 text-xs">
-                        <select className="flex-1 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
-                            <option>Professional</option>
-                            <option>Standard</option>
+                        <select
+                            value={resolution}
+                            onChange={(e) => {
+                                const r = e.target.value as "720p" | "1080p" | "4k";
+                                setResolution(r);
+                                if (r === "1080p" || r === "4k") setDuration(8);
+                            }}
+                            className="flex-1 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none"
+                        >
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                            <option value="4k">4K</option>
                         </select>
-                        <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-16 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
+                        <select
+                            value={duration}
+                            onChange={(e) => setDuration(Number(e.target.value))}
+                            disabled={resolution === "1080p" || resolution === "4k"}
+                            className="w-16 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             <option value={4}>4s</option>
                             <option value={6}>6s</option>
                             <option value={8}>8s</option>
@@ -272,13 +264,15 @@ export default function MiddlePanel({
                             <option value="16:9">16:9</option>
                             <option value="9:16">9:16</option>
                         </select>
-                        <select className="w-24 bg-[#1E1E1E] text-gray-300 px-2 py-1.5 rounded border border-[#2A2A2A] outline-none">
-                            <option>1 Output</option>
-                        </select>
                     </div>
+                    {(resolution === "1080p" || resolution === "4k") && (
+                        <p className="text-[10px] text-yellow-500/80">
+                            ⚠️ {resolution === "4k" ? "4K" : "1080p"} requires 8s duration — locked automatically.
+                        </p>
+                    )}
 
                     <button
-                        onClick={() => onGenerate(aspectRatio, duration)}
+                        onClick={() => onGenerate(aspectRatio, duration, resolution)}
                         disabled={isGenerating || !prompt.trim()}
                         className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${isGenerating
                             ? "bg-green-500/50 text-black/50"
