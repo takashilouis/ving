@@ -630,12 +630,14 @@ function FeatureImagePlaceholder({
 
 // Benefits Section
 function BenefitsSection() {
+  // imageSrc: after uploading via /admin, paste the R2 URL here for each feature.
   const features = [
     {
       title: "Lightning Fast Generation",
       subtitle: "From idea to video in minutes",
       description: "Traditional video editing takes hours. With Ving, simply describe what you want and watch as AI transforms your words into stunning, professional-quality video content. No editing skills required.",
       highlights: ["1-2 min for Veo 3", "3-4 min for Kling Motion", "One-click exports"],
+      imageSrc: "https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev/site-assets/1780013931492-8ijj7n.png",
       icon: (
         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -649,6 +651,7 @@ function BenefitsSection() {
       subtitle: "Google Veo 3.1 + Kling AI",
       description: "Access two industry-leading AI models in one platform. Use Veo 3.1 for cinematic text-to-video generation and Kling AI for precise motion control. Best-in-class quality that rivals professional studios.",
       highlights: ["Cinematic 1080p output", "Natural motion physics", "Photorealistic rendering"],
+      imageSrc: "https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev/site-assets/1780015508133-iw8mg6.png",
       icon: (
         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -662,6 +665,7 @@ function BenefitsSection() {
       subtitle: "Professional templates at your fingertips",
       description: "Skip the blank canvas. Choose from our curated library of advertisement, cinematic, fashion, and movie presets crafted by industry professionals. Each preset is optimized for maximum impact.",
       highlights: ["Advertisement styles", "Cinematic looks", "Fashion & lifestyle"],
+      imageSrc: "https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev/site-assets/1780017234964-dd270w.png",
       icon: (
         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
@@ -675,6 +679,7 @@ function BenefitsSection() {
       subtitle: "Your story, automatically visualized",
       description: "Write a story idea, and our AI breaks it down into perfectly timed scenes with detailed visual descriptions. Generate each clip individually or batch process your entire script into a cohesive video.",
       highlights: ["Auto scene detection", "Smart clip duration", "Narrative flow AI"],
+      imageSrc: "https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev/site-assets/1780020215264-bvttmc.png",
       icon: (
         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -688,6 +693,7 @@ function BenefitsSection() {
       subtitle: "Make any character dance",
       description: "Upload a character image and a reference video, then watch as your character perfectly mimics every movement. Create consistent animated content, dance videos, or bring illustrations to life.",
       highlights: ["Character preservation", "Reference video sync", "Smooth interpolation"],
+      imageSrc: "https://pub-d574151b368d4ccf991bc865e42ef400.r2.dev/site-assets/1780021095630-ua0gh0.png",
       icon: (
         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -753,6 +759,7 @@ function BenefitsSection() {
                     icon={feature.icon}
                     gradient={feature.gradient}
                     accentColor={feature.accentColor}
+                    imageSrc={feature.imageSrc || undefined}
                   />
                 </motion.div>
 
