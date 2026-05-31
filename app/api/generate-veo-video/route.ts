@@ -36,7 +36,7 @@ async function generateWithGemini(
     resolution: string,
     imageBase64?: string,
     imageMimeType?: string
-): Promise<Buffer> {
+): Promise<{ buffer: Buffer; googleUri: string }> {
     const adminSupabase = createAdminClient();
     const { data: keyData, error: keyError } = await adminSupabase
         .from("admin_api_keys")
@@ -76,7 +76,7 @@ async function generateWithGemini(
     });
     if (!videoResponse.ok) throw new Error(`Failed to download video: ${videoResponse.statusText}`);
 
-    return Buffer.from(await videoResponse.arrayBuffer());
+    return { buffer: Buffer.from(await videoResponse.arrayBuffer()), googleUri: videoUri };
 }
 
 // --- Vertex AI path (start only — no polling) ---
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
             }
 
             // --- Gemini: sync (poll server-side, return video directly) ---
-            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio, resolution, imageBase64, imageMimeType);
+            const { buffer: videoBuffer, googleUri } = await generateWithGemini(prompt, duration || 6, aspectRatio, resolution, imageBase64, imageMimeType);
 
             // Upload to R2
             let r2Url = "";
@@ -225,6 +225,7 @@ export async function POST(request: NextRequest) {
                     source: "veo",
                     aspect_ratio: aspectRatio,
                     resolution,
+                    google_uri: googleUri,
                     r2_key: r2Key,
                 });
             } catch (dbError) {
@@ -236,6 +237,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
                 success: true,
                 videoUrl: r2Url,
+                googleVideoUri: googleUri,
                 prompt,
                 duration,
                 creditsUsed: requiredCredits,
