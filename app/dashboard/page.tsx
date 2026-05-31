@@ -21,6 +21,7 @@ interface GeneratedVideo {
   timestamp: number;
   source?: string;
   aspectRatio?: string;
+  resolution?: string;
 }
 
 interface ScriptClip {
@@ -136,7 +137,7 @@ export default function Dashboard() {
     throw new Error("Video generation timed out after 15 minutes. Please try again.");
   };
 
-  const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6) => {
+  const handleGenerate = async (aspectRatio: string = "16:9", duration: number = 6, resolution: "720p" | "1080p" | "4k" = "720p") => {
     if (!prompt.trim()) return;
 
     if (!user) {
@@ -152,7 +153,7 @@ export default function Dashboard() {
       const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), duration, aspectRatio }),
+        body: JSON.stringify({ prompt: prompt.trim(), duration, aspectRatio, resolution }),
       }));
 
       const data = await response.json();
@@ -171,6 +172,9 @@ export default function Dashboard() {
           prompt: data.prompt,
           duration: data.duration,
           timestamp: Date.now(),
+          source: "veo",
+          aspectRatio,
+          resolution,
         };
       }
 
@@ -185,7 +189,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string) => {
+  const handleGenerateClip = async (clipPrompt: string, clipDuration: number, aspectRatio: string, resolution: "720p" | "1080p" | "4k" = "720p") => {
     if (!clipPrompt.trim()) return;
 
     if (!user) {
@@ -203,7 +207,7 @@ export default function Dashboard() {
       const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: clipPrompt.trim(), duration: clampedDuration, aspectRatio }),
+        body: JSON.stringify({ prompt: clipPrompt.trim(), duration: clampedDuration, aspectRatio, resolution }),
       }));
 
       const data = await response.json();
@@ -220,6 +224,9 @@ export default function Dashboard() {
           prompt: clipPrompt,
           duration: clipDuration,
           timestamp: Date.now(),
+          source: "veo",
+          aspectRatio,
+          resolution,
         };
       }
 

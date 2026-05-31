@@ -43,7 +43,7 @@ export default function UserMenu() {
   }
 
   return (
-    <div ref={menuRef} className="fixed top-4 right-4 z-40">
+    <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center transition-colors"
@@ -52,7 +52,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-12 right-0 w-64 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute top-12 right-0 z-50 w-64 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden">
           {/* User info */}
           <div className="p-4 border-b border-[#2A2A2A]">
             <p className="text-sm font-medium text-white truncate">{user?.email}</p>

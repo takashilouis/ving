@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useCsrfToken, withCsrfToken } from "@/lib/useCsrfToken";
 
@@ -394,10 +394,213 @@ export default function AdminPage() {
           />
         </div>
 
+        {/* Divider */}
+        <div className="border-t border-[#1E1E1E]" />
+
+        {/* Homepage Asset Uploads */}
+        <AssetUploadSection csrfToken={csrfToken} />
+
         {/* Footer note */}
         <p className="text-xs text-gray-700 text-center">
           Signed in as <span className="text-gray-500">{user?.email}</span>
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Asset Upload Section ────────────────────────────────────────────────────
+
+const FEATURE_SLOTS = [
+  { id: "lightning-fast",   label: "Lightning Fast Generation",  hint: "Benefits section — slot 1 (amber)" },
+  { id: "dual-ai",          label: "Dual AI Engine Power",       hint: "Benefits section — slot 2 (violet)" },
+  { id: "presets",          label: "40+ Creative Presets",       hint: "Benefits section — slot 3 (emerald)" },
+  { id: "script-to-video",  label: "Script-to-Video Magic",      hint: "Benefits section — slot 4 (cyan)" },
+  { id: "motion-control",   label: "Motion Control Studio",      hint: "Benefits section — slot 5 (rose)" },
+];
+
+function AssetSlot({
+  slot,
+  csrfToken,
+}: {
+  slot: { id: string; label: string; hint: string };
+  csrfToken: string | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const upload = async (file: File) => {
+    setError(null);
+    setIsUploading(true);
+
+    // Local preview
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+
+      const res = await fetch(
+        "/api/admin/upload-asset",
+        withCsrfToken(csrfToken, { method: "POST", body: form })
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setUploadedUrl(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setPreview(null);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) upload(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) upload(file);
+  };
+
+  const copyUrl = () => {
+    if (!uploadedUrl) return;
+    navigator.clipboard.writeText(uploadedUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl p-4 space-y-3">
+      {/* Header */}
+      <div>
+        <p className="text-sm font-medium text-white">{slot.label}</p>
+        <p className="text-xs text-gray-600 mt-0.5">{slot.hint}</p>
+      </div>
+
+      {/* Upload area */}
+      <div
+        onClick={() => !isUploading && inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={`relative rounded-lg border-2 border-dashed transition-colors cursor-pointer overflow-hidden
+          ${isDragging ? "border-green-500/60 bg-green-500/5" : "border-[#2A2A2A] hover:border-[#3A3A3A]"}
+          ${preview ? "h-36" : "h-24 flex items-center justify-center"}`}
+      >
+        {isUploading && (
+          <div className="absolute inset-0 bg-[#0A0A0A]/80 flex items-center justify-center z-10">
+            <svg className="animate-spin w-6 h-6 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </div>
+        )}
+        {preview ? (
+          <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-center px-4">
+            <svg className="w-6 h-6 text-gray-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            <p className="text-xs text-gray-500">Click or drag an image here</p>
+            <p className="text-[10px] text-gray-700 mt-0.5">PNG, JPG, WEBP — max 10MB</p>
+          </div>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {/* Error */}
+      {error && (
+        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{error}</p>
+      )}
+
+      {/* URL output */}
+      {uploadedUrl && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-gray-600 uppercase tracking-wider">Public URL — paste into page.tsx</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[10px] text-green-400 bg-[#111111] border border-[#2A2A2A] rounded px-2 py-1.5 truncate font-mono">
+              {uploadedUrl}
+            </code>
+            <button
+              onClick={copyUrl}
+              title="Copy URL"
+              className="flex-shrink-0 p-1.5 rounded bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#2A2A2A] text-gray-400 hover:text-white transition-colors"
+            >
+              {copied ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-400">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              )}
+            </button>
+          </div>
+          <button
+            onClick={() => { setPreview(null); setUploadedUrl(null); setError(null); }}
+            className="text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+          >
+            Replace with a different image
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssetUploadSection({ csrfToken }: { csrfToken: string | null }) {
+  return (
+    <div className="space-y-5">
+      {/* Section header */}
+      <div className="space-y-1">
+        <h2 className="text-base font-semibold text-white">Homepage Feature Images</h2>
+        <p className="text-sm text-gray-500">
+          Upload images for the Benefits section. After uploading, copy each URL and paste it
+          into the <code className="text-xs text-green-400 bg-[#111111] px-1 py-0.5 rounded">imageSrc</code> field
+          of the matching feature in <code className="text-xs text-gray-400 bg-[#111111] px-1 py-0.5 rounded">app/page.tsx</code>.
+        </p>
+      </div>
+
+      {/* Instruction banner */}
+      <div className="flex items-start gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/15 rounded-lg">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400 flex-shrink-0 mt-0.5">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Images are uploaded to Cloudflare R2 and served via CDN. After uploading all 5, open{" "}
+          <code className="text-green-400">app/page.tsx</code> and set each{" "}
+          <code className="text-green-400">imageSrc</code> in the <code className="text-green-400">features</code> array.
+        </p>
+      </div>
+
+      {/* Upload slots */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        {FEATURE_SLOTS.map((slot) => (
+          <AssetSlot key={slot.id} slot={slot} csrfToken={csrfToken} />
+        ))}
       </div>
     </div>
   );
