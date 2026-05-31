@@ -18,7 +18,9 @@ async function generateWithGemini(
     prompt: string,
     duration: number,
     aspectRatio: string,
-    resolution: string
+    resolution: string,
+    imageBase64?: string,
+    imageMimeType?: string
 ): Promise<Buffer> {
     const adminSupabase = createAdminClient();
     const { data: keyData, error: keyError } = await adminSupabase
@@ -36,7 +38,8 @@ async function generateWithGemini(
 
     let operation = await ai.models.generateVideos({
         model: "veo-3.1-fast-generate-preview",
-        prompt,
+        prompt: prompt || undefined,
+        ...(imageBase64 ? { image: { imageBytes: imageBase64, mimeType: imageMimeType } } : {}),
         config: { aspectRatio, durationSeconds: duration, resolution },
     });
 
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
     return withCsrfProtection(request, async (req) => {
         try {
             const body = await req.json();
-            const { prompt, aspectRatio = "16:9", resolution = "720p" } = body;
+            const { prompt, aspectRatio = "16:9", resolution = "720p", imageBase64, imageMimeType } = body;
             // 1080p and 4K require exactly 8s per Gemini API constraints
             const duration = (resolution === "1080p" || resolution === "4k") ? 8 : (body.duration || 6);
 
@@ -159,7 +162,7 @@ export async function POST(request: NextRequest) {
             }
 
             // --- Gemini: sync (poll server-side, return video directly) ---
-            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio, resolution);
+            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio, resolution, imageBase64, imageMimeType);
 
             // Upload to R2
             let r2Url = "";
