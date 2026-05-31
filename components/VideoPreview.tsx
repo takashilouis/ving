@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import UserMenu from "./UserMenu";
 
 interface GeneratedVideo {
     id: string;
@@ -9,6 +10,9 @@ interface GeneratedVideo {
     prompt: string;
     duration: number;
     timestamp: number;
+    source?: string;
+    aspectRatio?: string;
+    resolution?: string;
 }
 
 interface VideoPreviewProps {
@@ -30,6 +34,14 @@ export default function VideoPreview({
 }: VideoPreviewProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    const copyPrompt = useCallback(async () => {
+        if (!video?.prompt) return;
+        await navigator.clipboard.writeText(video.prompt);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }, [video?.prompt]);
 
     const downloadVideo = async () => {
         if (!video) return;
@@ -61,33 +73,26 @@ export default function VideoPreview({
     };
 
     return (
-        <div className="flex-1 h-full bg-[#0A0A0A] flex flex-col min-h-0">
+        <div className="flex-1 min-w-0 h-full bg-[#0A0A0A] flex flex-col min-h-0">
             {/* Top Bar */}
             <div className="flex-shrink-0 border-b border-[#1A1A1A] px-6 py-3 flex items-center justify-end gap-3">
-                <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
-                    Motion Video
-                </span>
-                <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
-                    Video 2.6
-                </span>
-                <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
-                    Standard Mode
-                </span>
-                <div className="flex items-center gap-2 ml-4">
-                    <button className="p-1.5 hover:bg-[#1E1E1E] rounded transition-colors text-gray-400 hover:text-white">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="1" />
-                            <circle cx="19" cy="12" r="1" />
-                            <circle cx="5" cy="12" r="1" />
-                        </svg>
-                    </button>
-                    <button className="p-1.5 hover:bg-[#1E1E1E] rounded transition-colors text-gray-400 hover:text-white">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
+                {video && (
+                    <>
+                        <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
+                            {video.source === "kling" ? "Kling 2.6" : "Veo 3.1 Fast"}
+                        </span>
+                        <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
+                            {video.resolution === "4k" ? "4K" : (video.resolution ?? "720p")}
+                        </span>
+                        <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
+                            {video.aspectRatio ?? "16:9"}
+                        </span>
+                        <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
+                            {video.duration}s
+                        </span>
+                    </>
+                )}
+                <UserMenu />
             </div>
 
             {/* Main Content Area */}
@@ -151,9 +156,9 @@ export default function VideoPreview({
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="w-full max-w-4xl"
+                            className="flex flex-col items-center w-full max-w-4xl"
                         >
-                            <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl">
+                            <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl w-fit max-w-full">
                                 <button
                                     onClick={downloadVideo}
                                     disabled={isDownloading}
@@ -180,12 +185,28 @@ export default function VideoPreview({
                                     autoPlay
                                     muted
                                     loop
-                                    className="w-full aspect-video"
+                                    className="max-w-full max-h-[65vh] w-auto"
                                     playsInline
                                 />
                             </div>
-                            <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg">
-                                <p className="text-xs text-gray-400 line-clamp-2">{video.prompt}</p>
+                            <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg flex items-start gap-2">
+                                <p className="text-xs text-gray-400 line-clamp-2 flex-1">{video.prompt}</p>
+                                <button
+                                    onClick={copyPrompt}
+                                    title="Copy prompt"
+                                    className="flex-shrink-0 p-1 rounded hover:bg-[#2A2A2A] transition-colors text-gray-500 hover:text-gray-300"
+                                >
+                                    {copied ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-400">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </svg>
+                                    )}
+                                </button>
                             </div>
                         </motion.div>
                     ) : (
@@ -265,24 +286,6 @@ export default function VideoPreview({
                 )}
             </div>
 
-            {/* Bottom Controls */}
-            {video && !isGenerating && (
-                <div className="flex-shrink-0 border-t border-[#1A1A1A] px-6 py-3 flex items-center bg-[#0A0A0A]">
-                    <div className="flex items-center gap-4">
-                        <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Go to OT to create
-                        </button>
-                        <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                            </svg>
-                            Lip Sync
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

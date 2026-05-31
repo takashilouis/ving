@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { GeneratedImage } from "@/lib/types";
+import UserMenu from "./UserMenu";
 
 interface ImagePreviewProps {
     image: GeneratedImage | null;
@@ -80,41 +81,13 @@ export default function ImagePreview({
                         </span>
                     </>
                 )}
-                <div className="flex items-center gap-2 ml-4">
-                    <button className="p-1.5 hover:bg-[#1E1E1E] rounded transition-colors text-gray-400 hover:text-white">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        >
-                            <circle cx="12" cy="12" r="1" />
-                            <circle cx="19" cy="12" r="1" />
-                            <circle cx="5" cy="12" r="1" />
-                        </svg>
-                    </button>
-                    <button className="p-1.5 hover:bg-[#1E1E1E] rounded transition-colors text-gray-400 hover:text-white">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        >
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
+                <UserMenu />
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-y-auto">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Image Area */}
-                <div className="flex-1 flex items-center justify-center p-6">
+                <div className="flex-1 flex items-center justify-center p-6 min-h-0 overflow-hidden">
                     {isGenerating ? (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -220,7 +193,7 @@ export default function ImagePreview({
                                 <img
                                     src={image.url}
                                     alt={image.prompt}
-                                    className="w-full h-auto max-h-[70vh] object-contain"
+                                    className="w-auto max-w-full max-h-full object-contain"
                                 />
                             </div>
                             <div className="mt-3 p-3 bg-[#1E1E1E] rounded-lg flex items-start gap-2">
@@ -274,7 +247,7 @@ export default function ImagePreview({
 
                 {/* Image History Gallery */}
                 {imageHistory.length > 0 && (
-                    <div className="border-t border-[#1A1A1A] p-4">
+                    <div className="flex-shrink-0 border-t border-[#1A1A1A] p-4">
                         <h4 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
                             Recent Images ({imageHistory.length})
                         </h4>
@@ -332,52 +305,6 @@ export default function ImagePreview({
                 )}
             </div>
 
-            {/* Bottom Controls */}
-            {image && !isGenerating && (
-                <div className="border-t border-[#1A1A1A] px-6 py-3 flex items-center justify-between bg-[#0A0A0A]">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={downloadImage}
-                            className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2"
-                        >
-                            <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            Download
-                        </button>
-                        <button className="text-xs font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-2">
-                            <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            Copy
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>{image.aspectRatio}</span>
-                        <span>•</span>
-                        <span>{getModelLabel(image.model)}</span>
-                        <span>•</span>
-                        <span>{image.quality}</span>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

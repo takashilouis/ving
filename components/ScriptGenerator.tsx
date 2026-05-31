@@ -15,7 +15,7 @@ interface ScriptGeneratorProps {
     onIdeaChange: (idea: string) => void;
     clips: ScriptClip[];
     onClipsChange: (clips: ScriptClip[]) => void;
-    onGenerateClip: (prompt: string, duration: number) => void;
+    onGenerateClip: (prompt: string, duration: number, resolution: "720p" | "1080p" | "4k") => void;
     csrfToken: string | null;
 }
 
@@ -36,6 +36,7 @@ export default function ScriptGenerator({
     csrfToken
 }: ScriptGeneratorProps) {
     const [videoLength, setVideoLength] = useState(30);
+    const [resolution, setResolution] = useState<"720p" | "1080p" | "4k">("720p");
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [generatingClipId, setGeneratingClipId] = useState<string | null>(null);
@@ -98,7 +99,7 @@ export default function ScriptGenerator({
 
     const handleGenerateClip = (clip: ScriptClip) => {
         setGeneratingClipId(clip.id);
-        onGenerateClip(clip.prompt, clip.duration);
+        onGenerateClip(clip.prompt, clip.duration, resolution);
         // Reset after a delay (video generation will handle actual state)
         setTimeout(() => setGeneratingClipId(null), 2000);
     };
@@ -140,6 +141,28 @@ export default function ScriptGenerator({
                         </button>
                     ))}
                 </div>
+            </div>
+
+            <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">
+                    🎬 Resolution
+                </label>
+                <div className="flex gap-2">
+                    {(["720p", "1080p", "4k"] as const).map((r) => (
+                        <button
+                            key={r}
+                            onClick={() => setResolution(r)}
+                            className={`toggle-btn px-3 py-1.5 text-xs font-bold ${resolution === r ? "active" : ""}`}
+                        >
+                            {r === "4k" ? "4K" : r}
+                        </button>
+                    ))}
+                </div>
+                {(resolution === "1080p" || resolution === "4k") && (
+                    <p className="mt-1.5 text-[10px] text-yellow-500/80">
+                        ⚠️ {resolution === "4k" ? "4K" : "1080p"} requires 8s — each clip will be generated at 8s.
+                    </p>
+                )}
             </div>
 
             <button

@@ -17,7 +17,8 @@ const VEO_PROVIDER = process.env.VEO_PROVIDER || "gemini";
 async function generateWithGemini(
     prompt: string,
     duration: number,
-    aspectRatio: string
+    aspectRatio: string,
+    resolution: string
 ): Promise<Buffer> {
     const adminSupabase = createAdminClient();
     const { data: keyData, error: keyError } = await adminSupabase
@@ -36,7 +37,7 @@ async function generateWithGemini(
     let operation = await ai.models.generateVideos({
         model: "veo-3.1-fast-generate-preview",
         prompt,
-        config: { aspectRatio, durationSeconds: duration },
+        config: { aspectRatio, durationSeconds: duration, resolution },
     });
 
     const maxAttempts = 60; // 10 min (10s × 60)
@@ -110,7 +111,9 @@ export async function POST(request: NextRequest) {
     return withCsrfProtection(request, async (req) => {
         try {
             const body = await req.json();
-            const { prompt, duration, aspectRatio = "16:9" } = body;
+            const { prompt, aspectRatio = "16:9", resolution = "720p" } = body;
+            // 1080p and 4K require exactly 8s per Gemini API constraints
+            const duration = (resolution === "1080p" || resolution === "4k") ? 8 : (body.duration || 6);
 
             if (!prompt) {
                 return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -156,7 +159,7 @@ export async function POST(request: NextRequest) {
             }
 
             // --- Gemini: sync (poll server-side, return video directly) ---
-            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio);
+            const videoBuffer = await generateWithGemini(prompt, duration || 6, aspectRatio, resolution);
 
             // Upload to R2
             let r2Url = "";
@@ -187,6 +190,7 @@ export async function POST(request: NextRequest) {
                     duration,
                     source: "veo",
                     aspect_ratio: aspectRatio,
+                    resolution,
                     r2_key: r2Key,
                 });
             } catch (dbError) {
