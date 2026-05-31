@@ -34,6 +34,28 @@ interface MiddlePanelProps {
     csrfToken: string | null;
 }
 
+/**
+ * Renders the center panel UI for composing and generating AI videos across four sub-tabs: Text, Image, Motion, and Script.
+ *
+ * The component manages local UI state (active tab, preset browsing, aspect ratio, duration, and resolution) and delegates prompt updates,
+ * generation actions, motion video generation, and script clip/idea handling to the provided callback props.
+ *
+ * @param onPromptChange - Called with the updated text prompt when the user edits or selects a preset (text tab).
+ * @param onGenerate - Invoked to generate a text-to-video asset with the current aspect ratio, duration, and resolution.
+ * @param onGenerateClip - Invoked to generate a single script clip; receives clip prompt, duration, aspect ratio, and resolution.
+ * @param onGenerateImageToVideo - Invoked to generate a video from an uploaded image; receives image base64, MIME type, prompt, aspect ratio, duration, and resolution.
+ * @param onMotionVideoGenerated - Called when a motion-control generated video is produced, with the resulting video payload.
+ * @param prompt - Current text prompt value displayed in the text-to-video textarea.
+ * @param isGenerating - When true, UI generation controls are disabled and a loading state is shown.
+ * @param selectedModel - Identifier of the currently selected model (if applicable).
+ * @param onModelChange - Called when the selected model should change.
+ * @param scriptClips - Array of script clips managed by the script generator.
+ * @param onScriptClipsChange - Called with an updated list of script clips.
+ * @param scriptIdea - Current script idea/seed text shown to the script generator.
+ * @param onScriptIdeaChange - Called when the script idea text changes.
+ * @param csrfToken - CSRF token forwarded to tabs that perform server-side requests (motion, script).
+ * @returns The rendered middle panel element.
+ */
 export default function MiddlePanel({
     //onPresetSelect,
     onPromptChange,

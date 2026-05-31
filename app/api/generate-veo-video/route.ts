@@ -13,7 +13,22 @@ export const maxDuration = 60; // Only needs to start the operation, not wait fo
 const VEO_PROVIDER = process.env.VEO_PROVIDER || "gemini";
 
 // --- Gemini AI Studio path ---
-// Gemini uses internal polling (generation is fast enough) and returns a Buffer directly.
+/**
+ * Generate a video using Gemini VEO and return the resulting MP4 bytes.
+ *
+ * @param prompt - The text prompt guiding the video generation. Pass an empty string to omit a prompt.
+ * @param duration - Desired duration of the generated video in seconds.
+ * @param aspectRatio - Target aspect ratio (for example, "16:9").
+ * @param resolution - Target resolution (for example, "720p", "1080p", "4k").
+ * @param imageBase64 - Optional base64-encoded image to use as an input frame for generation.
+ * @param imageMimeType - MIME type of `imageBase64` (for example, "image/png" or "image/jpeg").
+ * @returns The generated video MP4 as a Buffer.
+ * @throws If the service API key lookup fails.
+ * @throws If no active Gemini API key is configured.
+ * @throws If video generation does not complete within the polling timeout.
+ * @throws If the operation completes but no generated video URI is available (may indicate safety filtering).
+ * @throws If downloading the generated video fails.
+ */
 async function generateWithGemini(
     prompt: string,
     duration: number,
@@ -109,7 +124,23 @@ async function startVertexGeneration(
     return operationName;
 }
 
-// --- Main handler ---
+/**
+ * Handle POST requests to generate VEO videos, routing to Vertex (async start) or Gemini (server-side generation) and returning operation metadata or the generated video URL.
+ *
+ * Performs authentication, checks and deducts user credits, enforces duration/resolution constraints, optionally accepts an input image (`imageBase64` with `imageMimeType`), uploads generated videos to R2 (with a base64 fallback), and records generation metadata in the database.
+ *
+ * Responses:
+ * - 200 (Vertex flow): JSON with `{ async: true, operationName, prompt, duration, aspectRatio }`
+ * - 200 (Gemini flow): JSON with `{ success: true, videoUrl, prompt, duration, creditsUsed, remainingBalance }`
+ * - 400: missing prompt or content blocked by safety filters
+ * - 401: unauthorized
+ * - 402: insufficient credits (includes `balance` and `required`)
+ * - 429: API quota exceeded
+ * - 500: other failures with an error message
+ *
+ * @param request - Incoming NextRequest containing JSON body with `prompt`, optional `duration`, `aspectRatio`, `resolution`, and optional `imageBase64`/`imageMimeType`.
+ * @returns A NextResponse containing a JSON payload described above.
+ */
 export async function POST(request: NextRequest) {
     return withCsrfProtection(request, async (req) => {
         try {
