@@ -6,6 +6,7 @@ import { categoryPresets } from "@/lib/categoryPresets";
 import { Preset } from "@/lib/types";
 import ScriptGenerator from "./ScriptGenerator";
 import MotionControlTab from "./MotionControlTab";
+import ImageToVideoTab from "./ImageToVideoTab";
 
 type SubTab = "text-to-video" | "image-to-video" | "motion-control" | "script";
 
@@ -20,6 +21,7 @@ interface MiddlePanelProps {
     onPromptChange: (prompt: string) => void;
     onGenerate: (aspectRatio: string, duration: number, resolution: "720p" | "1080p" | "4k") => void;
     onGenerateClip: (prompt: string, duration: number, aspectRatio: string, resolution: "720p" | "1080p" | "4k") => void;
+    onGenerateImageToVideo: (imageBase64: string, imageMimeType: string, prompt: string, aspectRatio: string, duration: number, resolution: "720p" | "1080p" | "4k") => void;
     onMotionVideoGenerated: (videoUrl: string, prompt: string) => void;
     prompt: string;
     isGenerating: boolean;
@@ -37,6 +39,7 @@ export default function MiddlePanel({
     onPromptChange,
     onGenerate,
     onGenerateClip,
+    onGenerateImageToVideo,
     onMotionVideoGenerated,
     prompt,
     isGenerating,
@@ -158,17 +161,11 @@ export default function MiddlePanel({
 
                     {/* Image to Video Tab */}
                     {activeTab === "image-to-video" && (
-                        <motion.div key="image-to-video" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 flex items-center justify-center h-full">
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-500">
-                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                        <circle cx="8.5" cy="8.5" r="1.5" />
-                                        <polyline points="21 15 16 10 5 21" />
-                                    </svg>
-                                </div>
-                                <p className="text-xs text-gray-500">Coming soon</p>
-                            </div>
+                        <motion.div key="image-to-video" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <ImageToVideoTab
+                                onGenerate={onGenerateImageToVideo}
+                                isGenerating={isGenerating}
+                            />
                         </motion.div>
                     )}
 

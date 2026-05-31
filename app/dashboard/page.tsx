@@ -241,6 +241,52 @@ export default function Dashboard() {
     }
   };
 
+  const handleGenerateImageToVideo = async (
+    imageBase64: string,
+    imageMimeType: string,
+    prompt: string,
+    aspectRatio: string,
+    duration: number,
+    resolution: "720p" | "1080p" | "4k"
+  ) => {
+    if (!user) { setShowAuthModal(true); return; }
+
+    setIsGenerating(true);
+    setError(null);
+    setProgress("Starting image-to-video generation...");
+
+    try {
+      const response = await fetch("/api/generate-veo-video", withCsrfToken(csrfToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, duration, aspectRatio, resolution, imageBase64, imageMimeType }),
+      }));
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to generate video");
+
+      const newVideo: GeneratedVideo = {
+        id: `video-${Date.now()}`,
+        url: data.videoUrl,
+        prompt: prompt || "Image to video",
+        duration,
+        timestamp: Date.now(),
+        source: "veo",
+        aspectRatio,
+        resolution,
+      };
+
+      setCurrentVideo(newVideo);
+      setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
+      setProgress("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setProgress("");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleMotionVideoGenerated = (videoUrl: string, motionPrompt: string) => {
     const newVideo: GeneratedVideo = {
       id: `video-${Date.now()}`,
@@ -342,6 +388,7 @@ export default function Dashboard() {
               onPromptChange={setPrompt}
               onGenerate={handleGenerate}
               onGenerateClip={handleGenerateClip}
+              onGenerateImageToVideo={handleGenerateImageToVideo}
               onMotionVideoGenerated={handleMotionVideoGenerated}
               prompt={prompt}
               isGenerating={isGenerating}
