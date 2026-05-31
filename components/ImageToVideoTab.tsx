@@ -14,6 +14,22 @@ interface ImageToVideoTabProps {
     isGenerating: boolean;
 }
 
+/**
+ * UI for uploading a single image, configuring video generation parameters, and starting generation.
+ *
+ * Renders an image dropzone / preview, a prompt field, controls for resolution, duration, and aspect ratio,
+ * and a Generate button that calls the provided callback with the selected image and options.
+ *
+ * @param onGenerate - Callback invoked when the user clicks Generate; receives:
+ *   - `imageBase64`: base64 payload of the selected image (no data URL prefix)
+ *   - `imageMimeType`: MIME type of the selected image (e.g., `"image/png"`)
+ *   - `prompt`: optional motion description entered by the user
+ *   - `aspectRatio`: selected aspect ratio (`"16:9"` or `"9:16"`)
+ *   - `duration`: video duration in seconds
+ *   - `resolution`: selected resolution (`"720p" | "1080p" | "4k"`)
+ * @param isGenerating - When `true`, disables user inputs and shows a generating state
+ * @returns The rendered ImageToVideoTab React component
+ */
 export default function ImageToVideoTab({ onGenerate, isGenerating }: ImageToVideoTabProps) {
     const [image, setImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
     const [prompt, setPrompt] = useState("");

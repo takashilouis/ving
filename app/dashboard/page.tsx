@@ -30,6 +30,15 @@ interface ScriptClip {
   duration: number;
 }
 
+/**
+ * Main application dashboard for creating, previewing, and managing generated videos and images.
+ *
+ * Manages authentication gating, generation state (video/image/fusion), client-side polling for async video generation,
+ * and history for generated assets; renders the left navigation and the appropriate panels and previews
+ * (video, image, credits) along with an auth modal.
+ *
+ * @returns The rendered dashboard UI
+ */
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
   const { csrfToken } = useCsrfToken();
