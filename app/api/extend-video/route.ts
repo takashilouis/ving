@@ -30,11 +30,10 @@ async function extendWithGemini(
     let operation = await ai.models.generateVideos({
         model: "veo-3.1-fast-generate-preview",
         prompt: prompt || undefined,
-        video: { uri: googleUri, mimeType: "video/mp4" },
+        video: { uri: googleUri },
         config: {
-            aspectRatio: "16:9",  // extension preserves original ratio; API requires a value
-            durationSeconds: 8,   // required for extension per API docs
-            resolution: "720p",   // extension supports 720p only
+            numberOfVideos: 1,
+            resolution: "720p",
         },
     });
 

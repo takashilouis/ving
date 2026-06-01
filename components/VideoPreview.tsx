@@ -95,10 +95,46 @@ export default function VideoPreview({
                         <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
                             {video.duration}s
                         </span>
+                        {video.googleVideoUri && onExtend && (
+                            <button
+                                onClick={() => setShowExtend(!showExtend)}
+                                className={`text-xs px-3 py-1.5 rounded font-medium transition-colors flex items-center gap-1.5 ${showExtend ? "bg-green-500 text-black" : "bg-[#1E1E1E] text-gray-400 hover:text-white"}`}
+                            >
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
+                                </svg>
+                                Extend
+                            </button>
+                        )}
                     </>
                 )}
                 <UserMenu />
             </div>
+
+            {/* Extend form — slides open below top bar */}
+            {showExtend && video?.googleVideoUri && onExtend && (
+                <div className="flex-shrink-0 border-b border-[#1A1A1A] px-6 py-3 bg-[#0E0E0E] flex items-center gap-3">
+                    <input
+                        value={extensionPrompt}
+                        onChange={(e) => setExtensionPrompt(e.target.value)}
+                        placeholder="Continue the scene... (optional)"
+                        className="flex-1 bg-[#1A1A1A] text-xs text-gray-300 px-3 py-2 rounded border border-[#2A2A2A] outline-none placeholder-gray-600"
+                    />
+                    <button
+                        onClick={() => {
+                            onExtend(video.googleVideoUri!, extensionPrompt, video);
+                            setShowExtend(false);
+                            setExtensionPrompt("");
+                        }}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+                    >
+                        Extend +7s →
+                    </button>
+                    <button onClick={() => { setShowExtend(false); setExtensionPrompt(""); }} className="text-gray-600 hover:text-gray-400 transition-colors text-xs">
+                        Cancel
+                    </button>
+                </div>
+            )}
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -214,51 +250,6 @@ export default function VideoPreview({
                                 </button>
                             </div>
 
-                            {/* Extend section — only if video has a Google URI */}
-                            {video.googleVideoUri && onExtend && (
-                                <div className="mt-2">
-                                    {!showExtend ? (
-                                        <button
-                                            onClick={() => setShowExtend(true)}
-                                            className="w-full py-2 text-xs font-medium text-gray-400 hover:text-white border border-[#2A2A2A] hover:border-[#3A3A3A] rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <polyline points="5 12 19 12" />
-                                                <polyline points="13 6 19 12 13 18" />
-                                            </svg>
-                                            Extend Video (+7s)
-                                        </button>
-                                    ) : (
-                                        <div className="space-y-2 p-3 bg-[#111111] rounded-lg border border-[#2A2A2A]">
-                                            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Extension prompt (optional)</p>
-                                            <textarea
-                                                value={extensionPrompt}
-                                                onChange={(e) => setExtensionPrompt(e.target.value)}
-                                                placeholder="Continue the scene..."
-                                                className="dark-input w-full px-2 py-2 text-xs min-h-[60px] resize-none"
-                                            />
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        onExtend(video.googleVideoUri!, extensionPrompt, video);
-                                                        setShowExtend(false);
-                                                        setExtensionPrompt("");
-                                                    }}
-                                                    className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors"
-                                                >
-                                                    Extend →
-                                                </button>
-                                                <button
-                                                    onClick={() => { setShowExtend(false); setExtensionPrompt(""); }}
-                                                    className="px-3 py-2 text-xs text-gray-500 hover:text-white transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </motion.div>
                     ) : (
                         <div className="text-center max-w-md m-auto">
