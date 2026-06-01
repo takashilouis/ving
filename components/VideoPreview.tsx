@@ -103,12 +103,12 @@ export default function VideoPreview({
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Video Area - scrollable, shrinks to make room for gallery */}
-                <div className="flex-1 flex items-center justify-center p-6 min-h-0 overflow-y-auto">
+                <div className="flex-1 flex items-start justify-center p-6 min-h-0 overflow-y-auto">
                     {isGenerating ? (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-center relative"
+                            className="text-center relative m-auto"
                         >
                             <div className="relative w-32 h-32 mx-auto mb-8">
                                 <motion.div
@@ -261,7 +261,7 @@ export default function VideoPreview({
                             )}
                         </motion.div>
                     ) : (
-                        <div className="text-center max-w-md">
+                        <div className="text-center max-w-md m-auto">
                             <div className="w-24 h-24 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
                                     <polygon points="23 7 16 12 23 17 23 7" />

@@ -238,6 +238,7 @@ export default function Dashboard() {
           source: "veo",
           aspectRatio,
           resolution,
+          googleVideoUri: data.googleVideoUri,
         };
       }
 
@@ -285,6 +286,7 @@ export default function Dashboard() {
         source: "veo",
         aspectRatio,
         resolution,
+        googleVideoUri: data.googleVideoUri,
       };
 
       setCurrentVideo(newVideo);
