@@ -149,7 +149,8 @@ export async function POST(request: NextRequest) {
             // 1080p and 4K require exactly 8s per Gemini API constraints
             const duration = (resolution === "1080p" || resolution === "4k") ? 8 : (body.duration || 6);
 
-            if (!prompt) {
+            // Prompt is required for text-to-video, optional when an image is provided
+            if (!prompt && !imageBase64) {
                 return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
             }
 
