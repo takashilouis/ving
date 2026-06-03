@@ -22,6 +22,7 @@ interface GeneratedVideo {
   source?: string;
   aspectRatio?: string;
   resolution?: string;
+  googleVideoUri?: string;
 }
 
 interface ScriptClip {
@@ -184,6 +185,7 @@ export default function Dashboard() {
           source: "veo",
           aspectRatio,
           resolution,
+          googleVideoUri: data.googleVideoUri,
         };
       }
 
@@ -236,6 +238,7 @@ export default function Dashboard() {
           source: "veo",
           aspectRatio,
           resolution,
+          googleVideoUri: data.googleVideoUri,
         };
       }
 
@@ -283,11 +286,59 @@ export default function Dashboard() {
         source: "veo",
         aspectRatio,
         resolution,
+        googleVideoUri: data.googleVideoUri,
       };
 
       setCurrentVideo(newVideo);
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
       setProgress("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setProgress("");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleExtendVideo = async (googleVideoUri: string, extensionPrompt: string, originalVideo: GeneratedVideo) => {
+    if (!user) { setShowAuthModal(true); return; }
+
+    setIsGenerating(true);
+    setError(null);
+    setProgress("Extending video...");
+
+    try {
+      const response = await fetch("/api/extend-video", withCsrfToken(csrfToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          googleVideoUri,
+          prompt: extensionPrompt,
+          originalPrompt: originalVideo.prompt,
+          aspectRatio: originalVideo.aspectRatio ?? "16:9",
+          originalDuration: originalVideo.duration ?? 8,
+        }),
+      }));
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to extend video");
+
+      const newVideo: GeneratedVideo = {
+        id: `video-${Date.now()}`,
+        url: data.videoUrl,
+        prompt: extensionPrompt || originalVideo.prompt,
+        duration: (originalVideo.duration ?? 0) + 7,
+        timestamp: Date.now(),
+        source: "veo",
+        aspectRatio: originalVideo.aspectRatio ?? "16:9",
+        resolution: "720p",
+        googleVideoUri: data.googleVideoUri,
+      };
+
+      setCurrentVideo(newVideo);
+      setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
+      setProgress("");
+      if (data.persistenceWarning) setError(data.persistenceWarning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setProgress("");
@@ -416,6 +467,7 @@ export default function Dashboard() {
               videoHistory={videoHistory}
               onSelectVideo={handleSelectHistoryVideo}
               onDeleteVideo={handleDeleteVideo}
+              onExtend={handleExtendVideo}
             />
           </>
         )}
