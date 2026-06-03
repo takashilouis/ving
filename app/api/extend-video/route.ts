@@ -7,7 +7,7 @@ import { decryptApiKey } from "@/lib/supabase/encryption";
 import { withCsrfProtection } from "@/lib/csrf";
 import { uploadToR2, generateR2Filename } from "@/lib/r2-storage";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 async function extendWithGemini(
     googleUri: string,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     return withCsrfProtection(request, async (req) => {
         try {
             const body = await req.json();
-            const { googleVideoUri, prompt, originalPrompt, aspectRatio = "16:9" } = body;
+            const { googleVideoUri, prompt, originalPrompt, aspectRatio = "16:9", originalDuration = 8 } = body;
 
             if (!googleVideoUri) {
                 return NextResponse.json({ error: "Google video URI is required." }, { status: 400 });
@@ -122,12 +122,13 @@ export async function POST(request: NextRequest) {
                 provider: "gemini",
             });
 
+            let persistenceWarning: string | undefined;
             try {
                 await supabase.from("generated_videos").insert({
                     user_id: user.id,
                     url: r2Url,
                     prompt: prompt || originalPrompt || "Video extension",
-                    duration: 8,
+                    duration: originalDuration + 7,
                     source: "veo",
                     aspect_ratio: aspectRatio,
                     resolution: "720p",
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
                 });
             } catch (dbError) {
                 console.error("Failed to save extended video to database:", dbError);
+                persistenceWarning = "Video generated successfully but could not be saved to history.";
             }
 
             const { balance: newBalance } = await checkCredits(user.id, 0);
@@ -146,6 +148,7 @@ export async function POST(request: NextRequest) {
                 googleVideoUri: newGoogleUri,
                 creditsUsed: requiredCredits,
                 remainingBalance: newBalance,
+                ...(persistenceWarning && { persistenceWarning }),
             });
         } catch (error: unknown) {
             console.error("Video extension error:", error);
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            return NextResponse.json({ error: `Video extension failed: ${errorMessage}` }, { status: 500 });
+            return NextResponse.json({ error: "Video extension failed. Please try again." }, { status: 500 });
         }
     });
 }
