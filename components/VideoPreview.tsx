@@ -13,6 +13,7 @@ interface GeneratedVideo {
     source?: string;
     aspectRatio?: string;
     resolution?: string;
+    googleVideoUri?: string;
 }
 
 interface VideoPreviewProps {
@@ -22,6 +23,7 @@ interface VideoPreviewProps {
     videoHistory?: GeneratedVideo[];
     onSelectVideo?: (video: GeneratedVideo) => void;
     onDeleteVideo?: (videoId: string) => void;
+    onExtend?: (googleVideoUri: string, extensionPrompt: string, video: GeneratedVideo) => void;
 }
 
 export default function VideoPreview({
@@ -31,10 +33,13 @@ export default function VideoPreview({
     videoHistory = [],
     onSelectVideo,
     onDeleteVideo,
+    onExtend,
 }: VideoPreviewProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [showExtend, setShowExtend] = useState(false);
+    const [extensionPrompt, setExtensionPrompt] = useState("");
 
     const copyPrompt = useCallback(async () => {
         if (!video?.prompt) return;
@@ -90,20 +95,76 @@ export default function VideoPreview({
                         <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
                             {video.duration}s
                         </span>
+                        {video.googleVideoUri && onExtend && (() => {
+                            const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+                            const expired = video.timestamp && (Date.now() - video.timestamp) > FORTY_EIGHT_HOURS;
+                            const notWidescreen = video.aspectRatio && video.aspectRatio !== "16:9";
+                            const disabledTitle = expired
+                                ? "Extension expired — Google's Files API has a 48-hour limit. Generate a new video to extend."
+                                : notWidescreen
+                                ? `Veo can only extend 16:9 videos (this video is ${video.aspectRatio}).`
+                                : null;
+                            return disabledTitle ? (
+                                <span
+                                    title={disabledTitle}
+                                    className="text-xs px-3 py-1.5 rounded font-medium bg-[#1E1E1E] text-gray-600 cursor-not-allowed flex items-center gap-1.5"
+                                >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
+                                    </svg>
+                                    Extend
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={() => setShowExtend(!showExtend)}
+                                    className={`text-xs px-3 py-1.5 rounded font-medium transition-colors flex items-center gap-1.5 ${showExtend ? "bg-green-500 text-black" : "bg-[#1E1E1E] text-gray-400 hover:text-white"}`}
+                                >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
+                                    </svg>
+                                    Extend
+                                </button>
+                            );
+                        })()}
                     </>
                 )}
                 <UserMenu />
             </div>
 
+            {/* Extend form — slides open below top bar */}
+            {showExtend && video?.googleVideoUri && onExtend && (
+                <div className="flex-shrink-0 border-b border-[#1A1A1A] px-6 py-3 bg-[#0E0E0E] flex items-center gap-3">
+                    <input
+                        value={extensionPrompt}
+                        onChange={(e) => setExtensionPrompt(e.target.value)}
+                        placeholder="Continue the scene... (optional)"
+                        className="flex-1 bg-[#1A1A1A] text-xs text-gray-300 px-3 py-2 rounded border border-[#2A2A2A] outline-none placeholder-gray-600"
+                    />
+                    <button
+                        onClick={() => {
+                            onExtend(video.googleVideoUri!, extensionPrompt, video);
+                            setShowExtend(false);
+                            setExtensionPrompt("");
+                        }}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+                    >
+                        Extend +7s →
+                    </button>
+                    <button onClick={() => { setShowExtend(false); setExtensionPrompt(""); }} className="text-gray-600 hover:text-gray-400 transition-colors text-xs">
+                        Cancel
+                    </button>
+                </div>
+            )}
+
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Video Area - scrollable, shrinks to make room for gallery */}
-                <div className="flex-1 flex items-center justify-center p-6 min-h-0 overflow-y-auto">
+                <div className="flex-1 flex items-start justify-center p-6 min-h-0 overflow-y-auto">
                     {isGenerating ? (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-center relative"
+                            className="text-center relative m-auto"
                         >
                             <div className="relative w-32 h-32 mx-auto mb-8">
                                 <motion.div
@@ -208,9 +269,10 @@ export default function VideoPreview({
                                     )}
                                 </button>
                             </div>
+
                         </motion.div>
                     ) : (
-                        <div className="text-center max-w-md">
+                        <div className="text-center max-w-md m-auto">
                             <div className="w-24 h-24 bg-[#1E1E1E] rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-600">
                                     <polygon points="23 7 16 12 23 17 23 7" />

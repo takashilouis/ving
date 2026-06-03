@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
             source: vid.source,
             aspectRatio: vid.aspect_ratio,
             resolution: vid.resolution ?? null,
+            googleVideoUri: vid.google_uri ?? null,
             timestamp: new Date(vid.created_at).getTime(),
         }));
 
