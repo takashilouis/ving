@@ -316,6 +316,7 @@ export default function Dashboard() {
           prompt: extensionPrompt,
           originalPrompt: originalVideo.prompt,
           aspectRatio: originalVideo.aspectRatio ?? "16:9",
+          originalDuration: originalVideo.duration ?? 8,
         }),
       }));
 
@@ -337,6 +338,7 @@ export default function Dashboard() {
       setCurrentVideo(newVideo);
       setVideoHistory((prev) => [newVideo, ...prev].slice(0, 20));
       setProgress("");
+      if (data.persistenceWarning) setError(data.persistenceWarning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setProgress("");
