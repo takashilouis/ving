@@ -27,15 +27,26 @@ async function extendWithGemini(
     const apiKey = decryptApiKey(keyData.encrypted_key, "admin");
     const ai = new GoogleGenAI({ apiKey });
 
-    let operation = await ai.models.generateVideos({
-        model: "veo-3.1-fast-generate-preview",
-        prompt: prompt || undefined,
-        video: { uri: googleUri },
-        config: {
-            numberOfVideos: 1,
-            resolution: "720p",
-        },
-    });
+    let operation;
+    try {
+        operation = await ai.models.generateVideos({
+            model: "veo-3.1-fast-generate-preview",
+            prompt: prompt || undefined,
+            video: { uri: googleUri },
+            config: {
+                numberOfVideos: 1,
+                resolution: "720p",
+            },
+        });
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("PERMISSION_DENIED") || msg.includes("403")) {
+            throw new Error(
+                "This video's Google URI has expired (Google Files API has a 48-hour limit). Extension is no longer available for this video."
+            );
+        }
+        throw error;
+    }
 
     const maxAttempts = 60;
     let attempts = 0;
@@ -146,6 +157,12 @@ export async function POST(request: NextRequest) {
             if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
                 return NextResponse.json(
                     { error: "Content was blocked by safety filters. Please modify your prompt." },
+                    { status: 400 }
+                );
+            }
+            if (errorMessage.includes("Aspect ratio") || errorMessage.includes("16:9")) {
+                return NextResponse.json(
+                    { error: "Veo can only extend 16:9 (widescreen) videos. Portrait and square videos cannot be extended." },
                     { status: 400 }
                 );
             }

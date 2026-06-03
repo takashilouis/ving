@@ -95,17 +95,37 @@ export default function VideoPreview({
                         <span className="text-xs bg-[#1E1E1E] px-3 py-1.5 rounded text-gray-400 font-medium">
                             {video.duration}s
                         </span>
-                        {video.googleVideoUri && onExtend && (
-                            <button
-                                onClick={() => setShowExtend(!showExtend)}
-                                className={`text-xs px-3 py-1.5 rounded font-medium transition-colors flex items-center gap-1.5 ${showExtend ? "bg-green-500 text-black" : "bg-[#1E1E1E] text-gray-400 hover:text-white"}`}
-                            >
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
-                                </svg>
-                                Extend
-                            </button>
-                        )}
+                        {video.googleVideoUri && onExtend && (() => {
+                            const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+                            const expired = video.timestamp && (Date.now() - video.timestamp) > FORTY_EIGHT_HOURS;
+                            const notWidescreen = video.aspectRatio && video.aspectRatio !== "16:9";
+                            const disabledTitle = expired
+                                ? "Extension expired — Google's Files API has a 48-hour limit. Generate a new video to extend."
+                                : notWidescreen
+                                ? `Veo can only extend 16:9 videos (this video is ${video.aspectRatio}).`
+                                : null;
+                            return disabledTitle ? (
+                                <span
+                                    title={disabledTitle}
+                                    className="text-xs px-3 py-1.5 rounded font-medium bg-[#1E1E1E] text-gray-600 cursor-not-allowed flex items-center gap-1.5"
+                                >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
+                                    </svg>
+                                    Extend
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={() => setShowExtend(!showExtend)}
+                                    className={`text-xs px-3 py-1.5 rounded font-medium transition-colors flex items-center gap-1.5 ${showExtend ? "bg-green-500 text-black" : "bg-[#1E1E1E] text-gray-400 hover:text-white"}`}
+                                >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="5 12 19 12" /><polyline points="13 6 19 12 13 18" />
+                                    </svg>
+                                    Extend
+                                </button>
+                            );
+                        })()}
                     </>
                 )}
                 <UserMenu />
