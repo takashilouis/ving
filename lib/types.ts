@@ -55,3 +55,84 @@ export interface GeneratedFusionImage extends Omit<GeneratedImage, 'model' | 'qu
     sourceImages: number;
     fusionQuality: FusionQuality;
 }
+
+// ── Character System ──────────────────────────────────────────────────────────
+
+export interface Character {
+    id: string;
+    userId: string;
+    name: string;
+    description?: string;
+    imageUrl: string;
+    thumbnailUrl?: string;
+    tags?: string[];
+    createdAt: number;
+}
+
+// ── Agent / Chat ──────────────────────────────────────────────────────────────
+
+export interface ChatSession {
+    id: string;
+    userId: string;
+    title: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export type ToolStatus = 'pending' | 'success' | 'error';
+
+export interface ToolCallRecord {
+    id: string;
+    toolName: string;
+    input: Record<string, unknown>;
+    status: ToolStatus;
+    result?: unknown;
+}
+
+export interface GeneratedAssetRef {
+    type: 'image' | 'video';
+    url: string;
+    prompt: string;
+    characterIds?: string[];
+    duration?: number;
+    aspectRatio?: string;
+    googleVideoUri?: string;
+}
+
+export interface AgentChatMessage {
+    id: string;
+    sessionId: string;
+    role: 'user' | 'assistant';
+    content: string;
+    toolCalls: ToolCallRecord[];
+    assets: GeneratedAssetRef[];
+    createdAt: number;
+}
+
+// ── Studio ────────────────────────────────────────────────────────────────────
+
+export type GenerationMode = 'image' | 'video' | 'frames';
+export type AspectRatio = '16:9' | '4:3' | '1:1' | '3:4' | '9:16';
+export type Quantity = 1 | 2 | 3 | 4;
+
+export interface GenerationSettings {
+    mode: GenerationMode;
+    aspectRatio: AspectRatio;
+    quantity: Quantity;
+    model: string;
+    startFrameBase64?: string;
+    selectedCharacterIds: string[];
+    attachedImages: string[];
+}
+
+export interface StudioAsset {
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    prompt: string;
+    timestamp: number;
+    characterIds?: string[];
+    googleVideoUri?: string;
+    aspectRatio?: string;
+    duration?: number;
+}
