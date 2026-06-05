@@ -94,28 +94,28 @@
 ## GROUP 2 — Service Layer
 > Extract AI logic from route handlers so the agent can call them directly (no HTTP, no CSRF overhead).
 
-- [ ] **T05 — `lib/services/generate-image.ts`**
+- [x] **T05 — `lib/services/generate-image.ts`**
   Extract Gemini image gen logic from `app/api/generate-image/route.ts`.
   Export: `generateImageService(input)` → `{ imageUrl }`.
   Handles: API key fetch, Gemini call, R2 upload. No credit logic.
 
-- [ ] **T06 — `lib/services/generate-video.ts`**
+- [x] **T06 — `lib/services/generate-video.ts`**
   Extract `generateWithGemini()` from `app/api/generate-veo-video/route.ts`.
   Export: `generateVideoService(input)` → `{ videoUrl, googleVideoUri }`.
 
-- [ ] **T07 — `lib/services/kling-motion.ts`**
+- [x] **T07 — `lib/services/kling-motion.ts`**
   Extract Kling polling logic + JWT generation helper.
   Export: `klingMotionService(input)` → `{ videoUrl }`.
 
-- [ ] **T08 — `lib/services/generate-image-fusion.ts`**
+- [x] **T08 — `lib/services/generate-image-fusion.ts`**
   Extract fusion logic from `app/api/generate-image-fusion/route.ts`.
   Export: `generateImageFusionService(input)` → `{ imageUrl }`.
 
-- [ ] **T09 — `lib/services/generate-script.ts`**
+- [x] **T09 — `lib/services/generate-script.ts`**
   Extract Gemini script gen from `app/api/generate-script/route.ts`.
   Export: `generateScriptService(input)` → `{ clips[] }`.
 
-- [ ] **T10 — `lib/services/extend-video.ts`**
+- [x] **T10 — `lib/services/extend-video.ts`**
   Extract `extendWithGemini()` from `app/api/extend-video/route.ts`.
   Export: `extendVideoService(input)` → `{ videoUrl, newGoogleVideoUri }`.
 
