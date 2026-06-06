@@ -77,3 +77,14 @@ export function generateR2Filename(prefix: string, extension: string): string {
     const randomStr = Math.random().toString(36).substring(2, 8);
     return `${prefix}/${timestamp}-${randomStr}.${extension}`;
 }
+
+/**
+ * Delete a file from Cloudflare R2 by its key
+ */
+export async function deleteFromR2(key: string): Promise<void> {
+    const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+    const bucketName = process.env.R2_BUCKET_NAME;
+    if (!bucketName) throw new Error("R2_BUCKET_NAME environment variable required");
+    const r2Client = getR2Client();
+    await r2Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+}
