@@ -123,16 +123,16 @@
 
 ## GROUP 3 — Character Backend
 
-- [ ] **T11 — `lib/characters/service.ts`**
+- [x] **T11 — `lib/characters/service.ts`**
   - `getCharacters(userId)` → `Character[]`
   - `resolveCharacterImage(characterId, userId)` → raw base64 string (no `data:` prefix)
   Used by agent tools to inject character photos into generation calls.
 
-- [ ] **T12 — `app/api/characters/route.ts`**
+- [x] **T12 — `app/api/characters/route.ts`**
   - `GET` — list user's characters from DB ordered by `created_at` desc
   - `POST` — accept `multipart/form-data` (image + name + description), upload to R2 under `characters/{userId}/{timestamp}-{filename}`, insert DB row, return `Character`
 
-- [ ] **T13 — `app/api/characters/[id]/route.ts`**
+- [x] **T13 — `app/api/characters/[id]/route.ts`**
   - `PUT` — update name / description, set `updated_at`
   - `DELETE` — delete R2 object (best-effort) + delete DB row
 
@@ -140,13 +140,13 @@
 
 ## GROUP 4 — Agent Backend
 
-- [ ] **T14 — `lib/agent/types.ts`**
+- [x] **T14 — `lib/agent/types.ts`**
   Interfaces: `AgentChatRequest`, `AgentChatContext`, `ToolExecutionContext`.
 
-- [ ] **T15 — `lib/agent/system-prompt.ts`**
+- [x] **T15 — `lib/agent/system-prompt.ts`**
   `buildSystemPrompt(characters, balance)` → injects character list (name + id + description) and credit balance. Characters listed as `"Luna" (id: xxx): description`.
 
-- [ ] **T16 — `lib/agent/tools.ts`**
+- [x] **T16 — `lib/agent/tools.ts`**
   Define all 7 tools using Vercel AI SDK `tool()` + Zod schemas:
   - `generate_image` — prompt, aspectRatio, model, quality, quantity, characterId?
   - `generate_video` — prompt, duration, aspectRatio, characterId?
@@ -155,33 +155,26 @@
   - `create_script` — idea, targetDuration
   - `extend_video` — googleVideoUri, prompt?
   - `create_storyboard` — concept, numFrames, style, aspectRatio, characterId?
+  **Note:** AI SDK v6 uses `inputSchema` (not `parameters`). Fixed Zod v4 inference via `zs()` helper.
 
-- [ ] **T17 — `lib/agent/execute-tool.ts`**
-  `executeTool(toolName, input, ctx)` switch statement:
+- [x] **T17 — `lib/agent/execute-tool.ts`** (merged into T16)
+  Tool execution logic is inline in `lib/agent/tools.ts`:
   - Resolves `characterId` → base64 via `resolveCharacterImage()`
-  - Calls `checkCredits()` before generation
+  - Calls `requireCredits()` before generation (throws on insufficient)
   - Calls service fn (T05–T10)
   - Calls `deductCredits()` after success
-  - Returns structured result: `{ images[] | video | storyboard[] | clips[] }`
 
-- [ ] **T18 — `app/api/agent/sessions/route.ts`**
+- [x] **T18 — `app/api/agent/sessions/route.ts`**
   - `GET` — list user's chat sessions ordered by `updated_at` desc
   - `POST` — create new session with title "New Chat", return `{ id, title, createdAt }`
 
-- [ ] **T19 — `app/api/agent/sessions/[id]/route.ts`**
+- [x] **T19 — `app/api/agent/sessions/[id]/route.ts`**
   - `PATCH` — rename session title
   - `DELETE` — delete session (messages cascade via FK)
 
-- [ ] **T20 — `app/api/agent/chat/route.ts`**
-  Main SSE streaming endpoint:
-  1. Auth check (Supabase)
-  2. CSRF validation
-  3. Load `characters[]` + `balance` in parallel
-  4. `buildSystemPrompt(characters, balance)`
-  5. `streamText({ model: anthropic('claude-opus-4-8'), tools: agentTools, maxSteps: 6 })`
-  6. `onStepFinish` → persist to `chat_messages` (content + tool_calls + assets)
-  7. `onFinish` → auto-title session if still "New Chat"
-  8. Return `result.toDataStreamResponse()`
+- [x] **T20 — `app/api/agent/chat/route.ts`**
+  Main SSE streaming endpoint using AI SDK v6 `ToolLoopAgent` + `createAgentUIStreamResponse`.
+  Uses `stopWhen: stepCountIs(6)` (not `maxSteps`). Persists messages + assets on finish.
 
 ---
 
