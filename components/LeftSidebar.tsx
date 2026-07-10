@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -63,6 +64,8 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ onTabChange, activeTab }: LeftSidebarProps) {
     const { user } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
     const [credits, setCredits] = useState<number | null>(null);
 
     useEffect(() => {
@@ -117,6 +120,26 @@ export default function LeftSidebar({ onTabChange, activeTab }: LeftSidebarProps
                     )}
                 </motion.button>
             ))}
+
+            {/* Studio tab */}
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push("/studio")}
+                className={`relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                    pathname.startsWith("/studio")
+                        ? "bg-green-500/10 text-green-400"
+                        : "text-gray-500 hover:text-gray-300 hover:bg-[#1E1E1E]"
+                }`}
+                title="Studio"
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                {pathname.startsWith("/studio") && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r" />
+                )}
+            </motion.button>
 
             {/* Spacer to push credits to bottom */}
             <div className="flex-1" />
