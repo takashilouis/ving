@@ -212,6 +212,27 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Skeleton shimmer for placeholder cards */
+@keyframes card-shimmer {
+  0% { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.card-shimmer {
+  background: linear-gradient(
+    90deg,
+    #0A0A0A 0%,
+    #161616 20%,
+    #2A2A2A 40%,
+    #3A3A3A 50%,
+    #2A2A2A 60%,
+    #161616 80%,
+    #0A0A0A 100%
+  );
+  background-size: 1200px 100%;
+  animation: card-shimmer 1.8s ease-in-out infinite;
+}
+
 /* Smooth transitions */
 * {
   transition-property: background-color, border-color, color, fill, stroke;

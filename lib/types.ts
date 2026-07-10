@@ -119,8 +119,10 @@ export interface GenerationSettings {
     mode: GenerationMode;
     aspectRatio: AspectRatio;
     quantity: Quantity;
+    quality: ImageQuality;
     model: string;
     startFrameBase64?: string;
+    endFrameBase64?: string;
     selectedCharacterIds: string[];
     attachedImages: string[];
 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkCredits, deductCredits, getImageCreditCost } from "@/lib/credits";
@@ -9,10 +8,35 @@ import { ImageModel, ImageQuality } from "@/lib/types";
 
 export const maxDuration = 300; // 5 minutes timeout for image generation
 
-// Model IDs for different Gemini models
-const MODEL_IDS = {
-    flash: "gemini-2.5-flash-image",
-    pro: "gemini-3-pro-image-preview",
+// Model IDs per tier
+const IMAGE_MODELS: Record<string, string> = {
+    flash: "gemini-3.1-flash-image",
+    pro:   "gemini-3-pro-image",
+};
+
+// Aspect ratio → [w, h] ratio units (used for Sharp crop + resize)
+const RATIO_UNITS: Record<string, [number, number]> = {
+    "1:1":  [1, 1],
+    "16:9": [16, 9],
+    "9:16": [9, 16],
+    "4:3":  [4, 3],
+    "3:4":  [3, 4],
+};
+
+// Longest-side pixel target per quality tier
+const QUALITY_PX: Record<string, number> = {
+    "1K": 1024,
+    "2K": 2048,
+    "4K": 4096,
+};
+
+// Prompt hints so the model composes for the right shape
+const ASPECT_HINTS: Record<string, string> = {
+    "1:1":  "square 1:1 composition",
+    "16:9": "widescreen 16:9 landscape composition",
+    "9:16": "vertical 9:16 portrait composition",
+    "4:3":  "standard 4:3 landscape composition",
+    "3:4":  "portrait 3:4 composition",
 };
 
 export async function POST(request: NextRequest) {
@@ -54,18 +78,10 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            // Flash only supports 1K
-            if (model === "flash" && quality !== "1K") {
-                return NextResponse.json(
-                    { error: "Gemini 2.5 Flash only supports 1K quality." },
-                    { status: 400 }
-                );
-            }
-
             // 4K only for Pro
             if (quality === "4K" && model !== "pro") {
                 return NextResponse.json(
-                    { error: "4K quality is only available for Gemini 3.0 Pro." },
+                    { error: "4K quality is only available for Nano Banana Pro." },
                     { status: 400 }
                 );
             }
@@ -126,34 +142,32 @@ export async function POST(request: NextRequest) {
             // Decrypt the API key
             const apiKey = decryptApiKey(keyData.encrypted_key, "admin");
 
-            // Initialize the Google GenAI client
-            const ai = new GoogleGenAI({ apiKey });
-
-            // Select model ID based on model type
-            const modelId = MODEL_IDS[model];
-
-            // Build imageConfig with actual API parameters
-            const imageConfig: { aspectRatio: string; imageSize?: string } = {
-                aspectRatio: aspectRatio,
-            };
-
-            // Only Pro model supports imageSize for 2K/4K
-            if (model === "pro" && (quality === "2K" || quality === "4K")) {
-                imageConfig.imageSize = quality;
-            }
-
-            // Generate image using the appropriate model with proper config
-            const response = await ai.models.generateContent({
-                model: modelId,
-                contents: prompt,
-                config: {
-                    responseModalities: ["TEXT", "IMAGE"],
-                    imageConfig: imageConfig,
+            // Direct REST call — avoids SDK routing issues with image generation
+            const imageModel = IMAGE_MODELS[model] ?? IMAGE_MODELS.flash;
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${imageModel}:generateContent`;
+            const apiRes = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": apiKey,
                 },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `${prompt}. ${ASPECT_HINTS[aspectRatio] ?? ""}`.trim() }] }],
+                    generationConfig: {
+                        responseModalities: ["IMAGE"],
+                    },
+                }),
             });
 
+            if (!apiRes.ok) {
+                const errText = await apiRes.text();
+                throw new Error(`Gemini API error (${apiRes.status}): ${errText}`);
+            }
+
+            const responseData = await apiRes.json();
+
             // Extract image from response
-            const parts = response.candidates?.[0]?.content?.parts;
+            const parts = responseData.candidates?.[0]?.content?.parts;
             if (!parts || parts.length === 0) {
                 return NextResponse.json(
                     {
@@ -196,15 +210,30 @@ export async function POST(request: NextRequest) {
 
             try {
                 const { uploadToR2, generateR2Filename } = await import("@/lib/r2-storage");
-                const imageBuffer = Buffer.from(imageBase64, "base64");
-                const extension = mimeType === "image/jpeg" ? "jpg" : "png";
-                const filename = generateR2Filename("images", extension);
+                let imageBuffer = Buffer.from(imageBase64, "base64");
 
+                // Crop to the requested aspect ratio + scale to quality resolution in one Sharp pass.
+                // fit:"cover" + position:"centre" → center-crops any model output to the exact ratio.
+                const [rw, rh] = RATIO_UNITS[aspectRatio] ?? [1, 1];
+                const maxPx = QUALITY_PX[quality] ?? 1024;
+                const scale = maxPx / Math.max(rw, rh);
+                const outW = Math.round(rw * scale);
+                const outH = Math.round(rh * scale);
+
+                const sharp = (await import("sharp")).default;
+                const processed = await sharp(imageBuffer)
+                    .resize(outW, outH, { fit: "cover", position: "centre" })
+                    .png({ quality: 100 })
+                    .toBuffer();
+                imageBuffer = Buffer.from(processed);
+                mimeType = "image/png";
+
+                const filename = generateR2Filename("images", "png");
                 const { url, key } = await uploadToR2(imageBuffer, filename, mimeType);
                 r2Url = url;
                 r2Key = key;
             } catch (r2Error) {
-                console.error("R2 upload failed, using data URL:", r2Error);
+                console.error("R2 upload/processing failed, using data URL:", r2Error);
             }
 
             // Deduct credits after successful generation

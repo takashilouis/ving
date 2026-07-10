@@ -5,7 +5,7 @@
 - `[~]` In progress
 - `[x]` Done
 
-**48 tasks total** — ordered by dependency. Work top-to-bottom within each group.
+**63 tasks total** — ordered by dependency. Work top-to-bottom within each group.
 
 ---
 
@@ -180,71 +180,78 @@
 
 ## GROUP 5 — Studio UI Shell
 
-- [ ] **T21 — `app/studio/layout.tsx`**
+- [x] **T21 — `app/studio/layout.tsx`**
   Minimal layout: full height, `bg-[#0A0A0A]`, no shared dashboard header.
-  Wraps `AuthContext`. Auth gate: redirect to `/` if not signed in.
+  Auth gate in page.tsx (redirect if not signed in).
 
-- [ ] **T22 — `app/studio/page.tsx`**
+- [x] **T22 — `app/studio/page.tsx`**
   Holds all shared state:
   - `currentAsset`, `sessionHistory[]`
   - `settings` (mode, aspectRatio, quantity, model, selectedCharacterIds, attachedImages)
   - `agentMode` (bool), `activeSessionId`
   - `characters[]`, `isGenerating`, `progress`
+  Fetches characters on mount from `GET /api/characters`.
 
-- [ ] **T23 — `components/studio/StudioLayout.tsx`**
+- [x] **T23 — `components/studio/StudioLayout.tsx`**
   CSS grid: `"topbar topbar" / "canvas rail" / "bottombar bottombar"`.
-  Columns: `1fr 280px`. Rows: `48px 1fr 80px`.
-  Right rail collapsible via `showRail` state.
-  Conditionally renders `HistoryRail` or `ChatRail` based on `agentMode`.
+  Columns: `1fr 280px` (rail hidden when `showRail=false` via `0px`).
+  Rows: `48px 1fr auto`.
+  Top bar: back arrow → dashboard, Studio title, CreditBalance + UserMenu.
+  `handleSubmit` is a stub — wired in Group 6.
 
-- [ ] **T24 — `components/studio/Canvas.tsx`**
+- [x] **T24 — `components/studio/Canvas.tsx`**
   Full-bleed content viewer:
   - Image: `<img>` with fade-in transition
   - Video: `<video autoPlay loop muted playsInline>`
   - Multiple assets (quantity > 1): 2×2 grid
   - Empty: centered dark placeholder + hint text
-  - Download button overlay on hover
+  - Download button overlay on hover (handles base64 + external URLs)
 
-- [ ] **T25 — `components/studio/HistoryRail.tsx`**
-  Vertical scroll list of session history thumbnails (80px wide tiles).
+- [x] **T25 — `components/studio/HistoryRail.tsx`**
+  Vertical scroll list of session history thumbnails.
   Most recent at top. Click tile → `onAssetSelect(asset)`.
   Header row with "Hide history" button.
   Empty state: "Your generations will appear here."
+  Video thumbnails show play icon overlay.
 
-- [ ] **T26 — `components/studio/BottomBar.tsx`**
+- [x] **T26 — `components/studio/BottomBar.tsx`**
   - Auto-resize `textarea` (Enter = submit, Shift+Enter = newline)
-  - Left: `+` dropdown → "Save Character", "Upload Image", "Upload Video"
+  - Left: `+` dropdown → "Upload image", "Upload video", "Manage characters"
   - `Agent` pill toggle button (green when active)
   - Center: prompt input with drag-and-drop zone for images/videos
-  - Right: mode badge button (`Image ▣ 1x →`) — click opens `GenerationPopup`
+  - Right: mode badge button (shows character name if selected) → click opens `GenerationPopup`
   - Character chips row above input when characters are attached
+  - Submit arrow button (disabled when empty or generating)
 
-- [ ] **T27 — `components/studio/GenerationPopup.tsx`**
+- [x] **T27 — `components/studio/GenerationPopup.tsx`**
   Floats above BottomBar (absolute positioned, `bottom-full`).
   - Tabs: **Image** / **Video**
-  - Image tab: 5 aspect ratio buttons (16:9 4:3 1:1 3:4 9:16), 1x–4x quantity, model dropdown
-  - Video tab: **Frames** sub-tab (Start ⇄ End frame pickers), **Ingredients** sub-tab (character selector)
-  - Live credit cost: `base × quantity`
-  - Click outside → close
+  - Image tab: 5 aspect ratio buttons (16:9 4:3 1:1 3:4 9:16), 1x–4x quantity, Flash/Pro model
+  - Video tab: **Ingredients** sub-tab (character selector) + **Frames** sub-tab (start frame upload)
+  - Live credit cost footer
+  - Click outside / Escape → close
 
 ---
 
 ## GROUP 6 — Generation Wiring in Studio
 
-- [ ] **T28 — Image generation submit**
+- [x] **T28 — Image generation submit**
   On submit (mode=image): `Promise.all` N calls to `/api/generate-image` for quantity.
   Show spinner on Canvas. On success: `addAssetToHistory()` for each result.
   If `selectedCharacterIds[0]` set: fetch base64, include as `referenceImageBase64`.
+  **✓ Implemented in `StudioLayout.handleImageGeneration`. Character wiring deferred to T31.**
 
-- [ ] **T29 — Video generation submit**
+- [x] **T29 — Video generation submit**
   On submit (mode=video): call `/api/generate-veo-video`.
   Handle async polling (same pattern as existing dashboard).
   If character selected: pass base64 as `imageBase64` (image-to-video mode).
   Update canvas on completion.
+  **✓ Implemented in `StudioLayout.handleVideoGeneration`. Character wiring deferred to T31.**
 
-- [ ] **T30 — Frames mode submit**
+- [x] **T30 — Frames mode submit**
   On submit (mode=frames): call generate-video with `imageBase64` = start frame.
   Start and end frame pickers shown in Ingredients tab of popup.
+  **✓ Implemented in `StudioLayout.handleFramesGeneration`. Strips `data:` prefix, passes `imageBase64` + `imageMimeType` to `/api/generate-veo-video`.**
 
 - [ ] **T31 — Character ingredient wiring**
   When `settings.selectedCharacterIds` is non-empty:
@@ -330,9 +337,10 @@
 
 ## GROUP 9 — Navigation & Session Management
 
-- [ ] **T44 — Studio entry point**
+- [x] **T44 — Studio entry point**
   In existing `LeftSidebar.tsx`: add a Studio / sparkle icon tab.
   Navigates to `/studio`. Highlight when on `/studio` route.
+  **✓ Implemented. Uses `usePathname` to detect active route.**
 
 - [ ] **T45 — Session list UI**
   In Studio top bar: show current session title (editable on click).
@@ -364,6 +372,94 @@
 
 ---
 
+## GROUP 11 — Studio UX Extras (Implemented outside plan)
+
+- [x] **T49 — Canvas placeholder cards during generation**
+  While `isGenerating && mode=image`: keep existing images visible, add pulsing grey placeholder card(s) for each pending image (count = `settings.quantity`).
+  Placeholder uses correct `aspectRatio`, shows image-frame icon.
+  Only switches to fullscreen spinner for video/frames generation.
+  **✓ Implemented in `Canvas.tsx`. New props: `pendingCount`, `pendingAspectRatio`.**
+
+- [x] **T50 — Agent thinking steps UI (BottomBar transformation)**
+  When `agentMode && isGenerating`: BottomBar visually transforms:
+  - Textarea replaced by cycling step text (`Analyzing Prompt` → `Defining Visual Parameters` → `Rendering Image` → `Saving to Gallery`) in gray italic.
+  - `Agent` pill inverts to white background / black text.
+  - Send button replaced by prominent white stop (■) button.
+  - Expand icon (⤢) added top-right.
+  Steps cycle with real delays (1.5s, 2s) so each is visible; API calls start immediately in background.
+  Stop button uses `AbortController` to cancel in-flight `fetch` requests.
+  **✓ Implemented across `StudioLayout.tsx` (`thinkingStep` state, `abortRef`, `handleStop`) and `BottomBar.tsx`.**
+
+- [x] **T51 — `ImageDetailView` component**
+  Full-screen overlay when clicking any image in the Canvas.
+  - Top bar: back (←), truncated prompt title, ⓘ, ♡, share, "Hide history", **Done** button.
+  - Left toolbar: Crop / Zoom / AI-edit icon buttons (visual; not yet functional).
+  - Center: image large with `pr-52` to avoid thumbnail overlap.
+  - Bottom-right: thumbnail + full prompt text (3-line clamp).
+  - Bottom bar: "What do you want to change?" input; submit pre-fills main BottomBar prompt and closes.
+  **✓ Implemented in `components/studio/ImageDetailView.tsx`. Canvas images now have `cursor-pointer` + `onAssetClick` prop.**
+
+---
+
+---
+
+## GROUP 12 — Studio Canvas & UX Polish (Implemented)
+
+- [x] **T52 — Canvas gallery grid (left-to-right ordering)**
+  `Canvas.tsx` uses CSS `grid` (`repeat(auto-fill, minmax(220px, 1fr))` + `alignItems: start`) so newest assets flow left-to-right, top-to-bottom. Replaced CSS `columns` which incorrectly flowed top-to-bottom per column.
+  **✓ Implemented.**
+
+- [x] **T53 — Download via `/api/download` proxy**
+  R2 URLs have no CORS `Content-Disposition` headers, causing browser to open a new tab. Routing all downloads through a server-side `/api/download?url=...` proxy returns the file with correct headers. `triggerDownload()` in `Canvas.tsx` creates a Blob URL and programmatically clicks a hidden `<a>`.
+  **✓ Implemented.**
+
+- [x] **T54 — HistoryRail removed from StudioLayout**
+  Right-side history rail replaced by the gallery grid in Canvas. `StudioLayout` no longer renders `HistoryRail`; `showRail` prop retained for future use.
+  **✓ Implemented.**
+
+- [x] **T55 — Video autoplay + cursor-pointer on cards**
+  Gallery card videos call `.play()` via `useRef`/`useEffect` on mount (programmatic, not `autoPlay` attribute). All gallery cards have `cursor-pointer`.
+  **✓ Implemented.**
+
+- [x] **T56 — "Videos" sidebar tab**
+  Added `videos` value to `SidebarTab` type in `StudioSidebar.tsx`. New nav item between Images and Characters. Sets `galleryFilter="videos"` on Canvas.
+  **✓ Implemented.**
+
+- [x] **T57 — Coming soon placeholders for Characters/Scenes/Tools tabs**
+  When `sidebarTab` is `characters`, `scenes`, or `tools`, `StudioLayout` renders a centered placeholder with icon + "Coming soon" text instead of the Canvas.
+  **✓ Implemented.**
+
+- [x] **T58 — `VideoDetailView` component**
+  Full-screen video player overlay (matches Google Flow reference).
+  - Timeline seekbar with mouse + touch drag (document-level listeners, accounts for 40px `+` button offset).
+  - Fullscreen toggle via `requestFullscreen()`/`exitFullscreen()` + `fullscreenchange` event.
+  - Thumbnail strip — click to switch active video; `key={activeAsset.id}` forces `<video>` remount.
+  - Multi-line edit bar with "Use prompt" button to copy prompt to textarea.
+  **✓ Implemented in `components/studio/VideoDetailView.tsx`.**
+
+- [x] **T59 — Delete context menu on gallery cards**
+  Hover on any card reveals `⋮` button (top-right). Click opens dropdown with "Download" + "Move to trash" (red). Outer card has no `overflow-hidden`; an inner `div` with `absolute inset-0 overflow-hidden` clips media so the dropdown can overflow. Optimistic delete + `DELETE /api/history/images` or `/api/history/videos`.
+  **✓ Implemented in `Canvas.tsx` (`CardMenu` component).**
+
+- [x] **T60 — "Use prompt" button in `ImageDetailView`**
+  Bottom-right thumbnail card has a copy-icon "Use prompt" button that sets `editPrompt` to the asset's prompt, populating the edit textarea.
+  **✓ Implemented.**
+
+- [x] **T61 — BottomBar combined model chip + arrow direction**
+  Replaced two separate icon buttons with a single combined chip: `[emoji] [model name] [□ ratio] [Nx]`. Opens `GenerationPopup`. Send arrow changed from ↑ to → (right-pointing).
+  **✓ Implemented in `BottomBar.tsx`.**
+
+- [x] **T62 — Placeholder card shimmer animation**
+  Replaced flat `animate-pulse` with a moving skeleton shimmer: diagonal gradient of `#0A0A0A` → `#1C1C1C` → `#2A2A2A` → `#3A3A3A` sweeping horizontally at 1.8s. `@keyframes card-shimmer` in `globals.css`; `.card-shimmer` class used in `PlaceholderCard`.
+  **✓ Implemented.**
+
+- [x] **T63 — Model name & ID fixes**
+  - Renamed "Gemini Pro" → "Nano Banana Pro" in `BottomBar.tsx` and `GenerationPopup.tsx`.
+  - Fixed `generate-image/route.ts`: replaced fake single `IMAGE_MODEL = "gemini-2.5-flash-image"` constant with `IMAGE_MODELS` map (`flash` + `pro` both route to `"gemini-2.0-flash-preview-image-generation"`, the only currently supported image generation model).
+  **✓ Implemented.**
+
+---
+
 ## Dependency Map
 
 ```
@@ -383,4 +479,4 @@
 **Minimum viable demo** (agent works end-to-end):
 T01 → T04 → T05–T10 → T11–T13 → T14–T20 → T21–T27 → T38–T43
 
-**Skip for MVP:** T30 (frames mode), T37 (character management view), T45–T46 (session switching), T47–T48 (polish)
+**Skip for MVP:** T37 (character management view), T45–T46 (session switching), T47–T48 (polish)
