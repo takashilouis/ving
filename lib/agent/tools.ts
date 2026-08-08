@@ -14,6 +14,7 @@ import { generateImageFusionService } from "@/lib/services/generate-image-fusion
 import { generateScriptService } from "@/lib/services/generate-script";
 import { extendVideoService } from "@/lib/services/extend-video";
 import { resolveCharacterImage } from "@/lib/characters/service";
+import { extractRequestedAspectRatio } from "@/lib/aspect-ratio";
 import {
     checkCredits,
     deductCredits,
@@ -97,7 +98,7 @@ export function createAgentTools(ctx: ToolExecutionContext) {
                 const m = a.model ?? "pro";
                 const q = a.quality ?? "1K";
                 const n = a.quantity ?? 1;
-                const ar = a.aspectRatio ?? "1:1";
+                const ar = extractRequestedAspectRatio(prompt) ?? a.aspectRatio ?? "1:1";
                 const creditCost = getImageCreditCost(m, q) * n;
 
                 await requireCredits(ctx.userId, creditCost);
@@ -127,7 +128,7 @@ export function createAgentTools(ctx: ToolExecutionContext) {
             execute: async (args) => {
                 const a = args as Args<typeof sGenerateVideo>;
                 const duration = a.duration ?? 6;
-                const ar = a.aspectRatio ?? "16:9";
+                const ar = extractRequestedAspectRatio(a.prompt) ?? a.aspectRatio ?? "16:9";
                 const res = a.resolution ?? "720p";
 
                 await requireCredits(ctx.userId, CREDIT_COSTS.veo);
@@ -170,7 +171,7 @@ export function createAgentTools(ctx: ToolExecutionContext) {
             execute: async (args) => {
                 const a = args as Args<typeof sFuseCharacters>;
                 const q = a.quality ?? "standard";
-                const ar = a.aspectRatio ?? "1:1";
+                const ar = extractRequestedAspectRatio(a.fusionPrompt ?? "") ?? a.aspectRatio ?? "1:1";
 
                 await requireCredits(ctx.userId, getFusionCreditCost(q));
 
@@ -215,7 +216,7 @@ export function createAgentTools(ctx: ToolExecutionContext) {
             execute: async (args) => {
                 const a = args as Args<typeof sCreateStoryboard>;
                 const n = a.numFrames ?? 4;
-                const ar = a.aspectRatio ?? "16:9";
+                const ar = extractRequestedAspectRatio(a.concept) ?? a.aspectRatio ?? "16:9";
                 const s = a.style ?? "cinematic";
                 const creditCost = n * getImageCreditCost("flash", "1K");
 

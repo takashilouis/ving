@@ -58,5 +58,6 @@ Warn the user before calling a tool if the cost would exceed their balance.
 ## Style
 - Be brief — let the generated media speak.
 - Suggest character usage when relevant.
-- When prompts are vague, make them cinematic and specific before generating.`;
+- When prompts are vague, make them cinematic and specific before generating.
+- If the user specifies a size, format, or aspect ratio such as "9:16", "16:9", "1:1", "3:4", or "4:3", pass that exact value to the generation tool. The user's explicit instruction overrides defaults or UI settings.`;
 }

@@ -9,6 +9,7 @@ import StudioTopBar from "./StudioTopBar";
 import ImageDetailView from "./ImageDetailView";
 import VideoDetailView from "./VideoDetailView";
 import { StudioAsset, GenerationSettings, Character } from "@/lib/types";
+import { extractRequestedAspectRatio } from "@/lib/aspect-ratio";
 
 interface StudioLayoutProps {
     currentAsset: StudioAsset | null;
@@ -62,11 +63,18 @@ export default function StudioLayout({
         setProgress("");
     }, [setIsGenerating, setProgress]);
 
+    const getSubmitAspectRatio = useCallback(() => {
+        return agentMode
+            ? extractRequestedAspectRatio(prompt) ?? settings.aspectRatio
+            : settings.aspectRatio;
+    }, [agentMode, prompt, settings.aspectRatio]);
+
     // ── T28: Image generation ──────────────────────────────────────────────────
     const handleImageGeneration = useCallback(async () => {
         setIsGenerating(true);
         abortRef.current = new AbortController();
         const { signal } = abortRef.current;
+        const aspectRatio = getSubmitAspectRatio();
 
         setThinkingStep("Analyzing Prompt");
         setProgress(`Generating ${settings.quantity} image${settings.quantity > 1 ? "s" : ""}…`);
@@ -87,7 +95,7 @@ export default function StudioLayout({
                                 ? "pro"
                                 : (settings.model as "flash" | "pro") ?? "pro",
                             quality: settings.quality ?? "1K",
-                            aspectRatio: settings.aspectRatio,
+                            aspectRatio,
                         }),
                         signal,
                     }).then(r => r.json())
@@ -115,7 +123,7 @@ export default function StudioLayout({
                         url: result.imageUrl,
                         prompt,
                         timestamp: Date.now(),
-                        aspectRatio: settings.aspectRatio,
+                        aspectRatio,
                     };
                     batch.push(asset);
                     onAddAsset(asset);
@@ -135,13 +143,14 @@ export default function StudioLayout({
             abortRef.current = null;
             setProgress("");
         }
-    }, [prompt, settings, csrfToken, onAddAsset, setIsGenerating, setProgress]);
+    }, [prompt, settings, csrfToken, onAddAsset, setIsGenerating, setProgress, getSubmitAspectRatio]);
 
     // ── T29: Video generation ──────────────────────────────────────────────────
     const handleVideoGeneration = useCallback(async () => {
         setIsGenerating(true);
         setProgress("Starting video generation…");
         setBatchAssets([]);
+        const aspectRatio = getSubmitAspectRatio();
 
         try {
             const startRes = await fetch("/api/generate-veo-video", {
@@ -152,7 +161,7 @@ export default function StudioLayout({
                 },
                 body: JSON.stringify({
                     prompt,
-                    aspectRatio: settings.aspectRatio,
+                    aspectRatio,
                     duration: 6,
                     resolution: "720p",
                 }),
@@ -172,7 +181,7 @@ export default function StudioLayout({
                     url: startData.videoUrl,
                     prompt,
                     timestamp: Date.now(),
-                    aspectRatio: settings.aspectRatio,
+                    aspectRatio,
                     googleVideoUri: startData.googleVideoUri,
                     duration: 6,
                 };
@@ -203,7 +212,7 @@ export default function StudioLayout({
                             operationName,
                             prompt,
                             duration,
-                            aspectRatio: settings.aspectRatio,
+                            aspectRatio,
                         }),
                     });
 
@@ -218,7 +227,7 @@ export default function StudioLayout({
                             url: pollData.videoUrl,
                             prompt,
                             timestamp: Date.now(),
-                            aspectRatio: settings.aspectRatio,
+                            aspectRatio,
                             duration,
                         };
                         onAddAsset(asset);
@@ -239,7 +248,7 @@ export default function StudioLayout({
             setIsGenerating(false);
             setProgress("");
         }
-    }, [prompt, settings, csrfToken, onAddAsset, setIsGenerating, setProgress]);
+    }, [prompt, csrfToken, onAddAsset, setIsGenerating, setProgress, getSubmitAspectRatio]);
 
     // ── T30: Frames mode (image-to-video from start frame) ────────────────────
     const handleFramesGeneration = useCallback(async () => {
@@ -253,6 +262,7 @@ export default function StudioLayout({
         setIsGenerating(true);
         setProgress("Starting frames generation…");
         setBatchAssets([]);
+        const aspectRatio = getSubmitAspectRatio();
 
         try {
             // Strip data: URI prefix before sending
@@ -268,7 +278,7 @@ export default function StudioLayout({
                 },
                 body: JSON.stringify({
                     prompt: prompt || "",
-                    aspectRatio: settings.aspectRatio,
+                    aspectRatio,
                     duration: 6,
                     resolution: "720p",
                     imageBase64,
@@ -290,7 +300,7 @@ export default function StudioLayout({
                     url: startData.videoUrl,
                     prompt,
                     timestamp: Date.now(),
-                    aspectRatio: settings.aspectRatio,
+                    aspectRatio,
                     googleVideoUri: startData.googleVideoUri,
                     duration: 6,
                 };
@@ -317,7 +327,7 @@ export default function StudioLayout({
                             "Content-Type": "application/json",
                             "x-csrf-token": csrfToken ?? "",
                         },
-                        body: JSON.stringify({ operationName, prompt, duration, aspectRatio: settings.aspectRatio }),
+                        body: JSON.stringify({ operationName, prompt, duration, aspectRatio }),
                     });
 
                     const pollData = await pollRes.json();
@@ -330,7 +340,7 @@ export default function StudioLayout({
                             url: pollData.videoUrl,
                             prompt,
                             timestamp: Date.now(),
-                            aspectRatio: settings.aspectRatio,
+                            aspectRatio,
                             duration,
                         };
                         onAddAsset(asset);
@@ -350,12 +360,17 @@ export default function StudioLayout({
             setIsGenerating(false);
             setProgress("");
         }
-    }, [prompt, settings, csrfToken, onAddAsset, setIsGenerating, setProgress]);
+    }, [prompt, settings, csrfToken, onAddAsset, setIsGenerating, setProgress, getSubmitAspectRatio]);
 
     // ── Dispatch ───────────────────────────────────────────────────────────────
     function handleSubmit() {
         if (isGenerating) return;
         if (settings.mode !== "frames" && !prompt.trim()) return;
+
+        const requestedAspectRatio = agentMode ? extractRequestedAspectRatio(prompt) : null;
+        if (requestedAspectRatio && requestedAspectRatio !== settings.aspectRatio) {
+            onSettingsChange({ aspectRatio: requestedAspectRatio });
+        }
 
         if (settings.mode === "image") {
             handleImageGeneration();
@@ -431,7 +446,7 @@ export default function StudioLayout({
                                 progress={progress}
                                 uploadProgress={uploadProgress}
                                 pendingCount={isGenerating && settings.mode === "image" ? settings.quantity : 0}
-                                pendingAspectRatio={settings.aspectRatio}
+                                pendingAspectRatio={agentMode ? extractRequestedAspectRatio(prompt) ?? settings.aspectRatio : settings.aspectRatio}
                                 onAssetClick={setDetailAsset}
                                 onDeleteAsset={onDeleteAsset}
                             />
