@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import LeftSidebar from "@/components/LeftSidebar";
 import MiddlePanel from "@/components/MiddlePanel";
 import VideoPreview from "@/components/VideoPreview";
@@ -409,8 +410,23 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="h-screen flex bg-[#0A0A0A] overflow-hidden">
+      <div className="relative h-screen flex bg-[#0A0A0A] overflow-hidden">
         <LeftSidebar onTabChange={setSidebarTab} activeTab={sidebarTab} />
+
+        <Link
+          href="/templates"
+          className="absolute left-[446px] top-[9px] z-30 hidden h-8 items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#141414]/95 px-3 text-xs font-semibold text-gray-300 shadow-lg backdrop-blur transition hover:border-green-500/40 hover:bg-[#1D1D1D] hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500/60 lg:inline-flex"
+          aria-label="Open AI image templates"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          Templates
+          <span className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.65)]" />
+        </Link>
 
         {sidebarTab === "credits" ? (
           <>
